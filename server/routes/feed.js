@@ -43,9 +43,9 @@ router.get("/:userId", async (req, res) => {
     let {userId} = req.params;
     try {
         let sql = "SELECT * "
-                + "FROM TBL_FEED F "
-                + "INNER JOIN TBL_FEED_IMG I ON F.ID = I.FEEDID "
-                + "WHERE F.USERID = ? "
+                + "FROM PTB_FEED F "
+                + "INNER JOIN PTB_FEED_IMG I ON F.ID = I.FEEDID "
+                + "WHERE F.USER_ID = ? "
         ;
         let [list] = await db.query(sql, [userId]); //비동기적으로 동작 -> await 처리
         // console.log(list);
@@ -63,7 +63,7 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
     let {feedId} = req.params;
     // console.log(id);
     try {
-        let sql = "DELETE FROM TBL_FEED WHERE ID = " + feedId;
+        let sql = "DELETE FROM PTB_FEED WHERE FEED_NO = " + feedId;
         let result = await db.query(sql); //비동기적으로 동작 -> await 처리
         // console.log("result ==> " , result);
         res.json({
@@ -79,7 +79,7 @@ router.post('/', async (req, res) => {
     let {userId, content} = req.body;
     console.log(content);
     try {
-        let sql = "INSERT INTO TBL_FEED VALUES (NULL, ?, ?, NOW())";
+        let sql = "INSERT INTO PTB_FEED VALUES (NULL, ?, ?, NOW())";
         let result = await db.query(sql, [userId, content]); //비동기적으로 동작 -> await 처리
         console.log(result);
         res.json({

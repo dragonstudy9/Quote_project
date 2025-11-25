@@ -21,13 +21,13 @@ router.get("/:userId", async (req, res) => {
         //방법 2. 조인쿼리 만들어서 하나로 리턴
         let sql = 
             "SELECT U.*, IFNULL(T.CNT, 0) cnt " +
-            "FROM TBL_USER U " +
+            "FROM PTB_USER U " +
             "LEFT JOIN ( " +
-            "    SELECT USERID, COUNT(*) CNT " +
-            "    FROM TBL_FEED " +
-            "    GROUP BY USERID " +
-            ") T ON U.USERID = T.USERID " +
-            "WHERE U.USERID = ?";
+            "    SELECT USER_ID, COUNT(*) CNT " +
+            "    FROM PTB_USER " +
+            "    GROUP BY USER_ID " +
+            ") T ON U.USER_ID = T.USER_ID " +
+            "WHERE U.USER_ID = ?";
         
         let [list] = await db.query(sql, [userId]); //비동기적으로 동작 -> await 처리
         // console.log(list);
@@ -43,19 +43,18 @@ router.get("/:userId", async (req, res) => {
 
 
 router.post("/join", async (req, res) => {
-    let {userId, pwd, userName} = req.body;
+    let {userId, pwd, userName, userEmail, userPhoneNumber, userAddr} = req.body;
     
     try {
         let hashPwd = await bcrypt.hash(pwd, 10);//숫자는 암호화 반복횟수
-        let sql = "INSERT INTO PTB_USER (USER_ID, USER_PASSWORD, USER_NAME, USER_DATE) VALUES (?, ?, ?, NOW())";
-        let result = await db.query(sql, [userId, hashPwd, userName]); //비동기적으로 동작 -> await 처리
-        // console.log(list);
+        let sql = "INSERT INTO PTB_USER VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        let result = await db.query(sql, [userId, hashPwd, userName, userEmail, userPhoneNumber, userAddr]); //비동기적으로 동작 -> await 처리
+        console.log("result =========> ", result);
         res.json({
             result : result,
             msg : "가입되었습니다!"
         });
     } catch (error) {
-        console.log("에러 발생!");
         console.log(error);
     }
 })
@@ -72,9 +71,7 @@ router.post('/login', async (req, res) => {
         let token = null;
         if(list.length > 0){
             // 아이디 존재
-            console.log("list ====>", list);
-            console.log("list[0].USER_PASSWORD =====> ", list[0].USER_PASSWORD);
-            console.log("userPassword ====> ", userPassword);
+            
             const match = await bcrypt.compare(userPassword, list[0].USER_PASSWORD); //해시화된 암호를 꺼내서 입력된 값과 비교
             if(match){
                 msg = list[0].USER_ID + " 님 환영합니다!";

@@ -7,6 +7,9 @@ function Join() {
   let userId = useRef();
   let pwd = useRef();
   let userName = useRef();
+  let userEmail = useRef();
+  let userPhoneNumber = useRef();
+  let userAddr = useRef();
   return (
     <Container maxWidth="xs">
       <Box
@@ -30,15 +33,37 @@ function Join() {
           inputRef={pwd}
         />
         <TextField inputRef={userName} label="Username" variant="outlined" margin="normal" fullWidth />
+        <TextField inputRef={userEmail} label="Email" variant="outlined" margin="normal" fullWidth />
+        <TextField inputRef={userPhoneNumber} label="Phone" variant="outlined" margin="normal" fullWidth />
+        <TextField inputRef={userAddr} label="Addr" variant="outlined" margin="normal" fullWidth />
         <Button 
             variant="contained" 
             color="primary" 
             fullWidth style={{ marginTop: '20px' }}
             onClick={()=>{
+
+              if(!userId.current.value){
+                alert("아이디를 입력해주세요!");
+                return;
+              }
+
+              if(!pwd.current.value){
+                alert("비밀번호를 입력해주세요!");
+                return;
+              }
+
+              if(!userName.current.value){
+                alert("성함을 입력해주세요!");
+                return;
+              }
+
               let param = {
                 userId : userId.current.value,
                 pwd : pwd.current.value,
-                userName : userName.current.value
+                userName : userName.current.value,
+                userEmail : userEmail.current.value,
+                userPhoneNumber : userPhoneNumber.current.value,
+                userAddr : userAddr.current.value
               };
 
               fetch("http://localhost:3010/user/join", {
