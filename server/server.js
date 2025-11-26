@@ -12,6 +12,8 @@ app.use(cors({
 }))
 
 app.use(express.json());
+
+//파일 첨부 기능
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 

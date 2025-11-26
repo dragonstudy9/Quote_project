@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, List, ListItem, ListItemText, Typography, Toolbar, ListItemIcon } from '@mui/material';
 import { Home, Add, AccountCircle } from '@mui/icons-material';
+import AppsIcon from '@mui/icons-material/Apps';
 import { Link } from 'react-router-dom';
 import Mui from './Mui';
 
@@ -22,11 +23,19 @@ function Menu() {
         SNS 메뉴
       </Typography>
       <List>
-        <ListItem button component={Link} to="/feed">
+
+      <ListItem button component={Link} to="/feedList">
+          <ListItemIcon>
+            <AppsIcon />
+          </ListItemIcon>
+          <ListItemText primary="전체 피드" />
+        </ListItem>
+
+        <ListItem button component={Link} to="/myFeed">
           <ListItemIcon>
             <Home />
           </ListItemIcon>
-          <ListItemText primary="피드" />
+          <ListItemText primary="나의 피드" />
         </ListItem>
         <ListItem button component={Link} to="/register">
           <ListItemIcon>
@@ -47,6 +56,8 @@ function Menu() {
           </ListItemIcon>
           <ListItemText primary="mui테스트" />
         </ListItem>
+
+        
       </List>
     </Drawer>
   );

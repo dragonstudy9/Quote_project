@@ -17,6 +17,7 @@ import { PhotoCamera } from '@mui/icons-material';
 
 function Register() {
   const [files, setFile] = React.useState([]);
+  let titleRef = useRef();
   let contentRef = useRef();
 
   const handleFileChange = (event) => {
@@ -24,16 +25,13 @@ function Register() {
   };
 
   function fnFeedAdd() {
-    if (files.length == 0) {
-      alert("이미지를 선택해주세요!");
-      return;
-    }
 
     const token = localStorage.getItem("token");
     const decoded = jwtDecode(token);
 
     let param = {
-      content: contentRef.current.value,
+      feedTitle: titleRef.current.value,
+      feedContents: contentRef.current.value,
       userId: decoded.userId
     }
     fetch("http://localhost:3010/feed", {
@@ -94,7 +92,7 @@ function Register() {
           </Select>
         </FormControl>
 
-        <TextField label="제목" variant="outlined" margin="normal" fullWidth />
+        <TextField inputRef={titleRef} label="제목" variant="outlined" margin="normal" fullWidth />
         <TextField
           inputRef={contentRef}
           label="내용"

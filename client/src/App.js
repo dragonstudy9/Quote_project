@@ -3,7 +3,8 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { Box, CssBaseline } from '@mui/material';
 import Login from './components/Login';
 import Join from './components/Join'; // Join으로 변경
-import Feed from './components/Feed';
+import MyFeed from './components/MyFeed';
+import FeedList from './components/FeedList';
 import Register from './components/Register';
 import MyPage from './components/MyPage';
 import Menu from './components/Menu'; // Menu로 변경
@@ -21,7 +22,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/join" element={<Join />} />
-          <Route path="/feed" element={<Feed />} />
+          <Route path="/myFeed" element={<MyFeed />} />
+          <Route path="/feedList" element={<FeedList />} />
           <Route path="/register" element={<Register />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mui" element={<Mui />} />
