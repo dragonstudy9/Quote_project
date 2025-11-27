@@ -9,10 +9,12 @@ import Register from './components/Register';
 import MyPage from './components/MyPage';
 import Menu from './components/Menu'; // Menu로 변경
 import Mui from './components/Mui';
+import AdminFeed from './components/AdminFeed';
 
 function App() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/' || location.pathname === '/join';
+  
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -27,6 +29,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mui" element={<Mui />} />
+          <Route path="/admin" element={<AdminFeed />} />
         </Routes>
       </Box>
     </Box>

@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
 
 function FeedList() {
   const [open, setOpen] = useState(false);
@@ -67,13 +68,72 @@ function FeedList() {
     setSelectedFeed(null);
   };
   
-  // 댓글 관련 핸들러 (UI 편의상 유지)
-  const handleAddComment = () => {
-    if (newComment.trim() !== '') {
-      setComments([...comments, { id: Date.now(), user: 'CurrentUser', text: newComment }]);
-      setNewComment('');
+  // 댓글 추가 핸들러 함수
+const handleAddComment = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("로그인 후 댓글을 작성해주세요!");
+        navigate("/"); 
+        return;
     }
-  };
+    
+    // 1. 입력값 확인
+    if (!newComment.trim()) {
+        alert("댓글 내용을 입력해주세요!");
+        return;
+    }
+
+    if (!selectedFeed) return;
+    
+    const decoded = jwtDecode(token);
+    const userId = decoded.userId;
+    
+    // 2. 서버에 전송할 데이터 준비
+    const param = {
+        feedNo: selectedFeed.id, 
+        feedComment: newComment, // 🔑 서버 API에 맞춰 키를 'feedComment'로 설정
+    };
+
+    // 3. API 호출
+    fetch("http://localhost:3010/feed/comment", {
+        method: "POST",
+        headers: {
+            "Content-type": "application/json",
+            "Authorization": "Bearer " + token 
+        },
+        body: JSON.stringify(param)
+    })
+    .then(res => {
+        if (!res.ok) {
+            // 서버 에러 처리 (4xx, 5xx)
+            return res.json().then(err => {
+                alert("댓글 등록 실패: " + (err.msg || "알 수 없는 오류"));
+                throw new Error("API failed");
+            });
+        }
+        return res.json();
+    })
+    .then(data => {
+        // 4. 성공적으로 등록되면 UI 업데이트
+        alert(data.msg);
+        setNewComment(''); // 입력 필드 초기화
+        
+        // 5. 📢 댓글 목록을 상태에 추가하여 즉시 반영
+        const newCommentObject = {
+            id: data.insertId, 
+            text: param.feedComment, // 새로운 댓글 내용을 사용
+            user: userId, 
+            // 💡 주의: 현재는 사용자 ID만 표시됩니다. 사용자 이름(userName)을 표시하려면 
+            // 서버에서 댓글 조회 API를 만들 때 JOIN하여 사용자 이름도 가져와야 합니다.
+        };
+        
+        setComments(prev => [...prev, newCommentObject]);
+        
+    })
+    .catch(error => {
+        console.error("댓글 등록 중 오류:", error);
+    });
+};
 
   // 4. 컴포넌트 렌더링 (FeedList는 삭제 버튼 없이 피드만 보여줌)
   return (

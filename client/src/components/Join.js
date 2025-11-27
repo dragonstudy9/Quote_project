@@ -68,12 +68,28 @@ function Join() {
       return;
     }
 
+    // 🔑 1. 휴대폰 번호 값 추출 및 공백 제거
+    const phoneNumber = userPhoneNumber.current.value.trim();
+
+    // 2. 🔑 휴대폰 번호 유효성 검사 로직 수정
+    const phoneRegex = /^\d{11}$/;
+
+    // 휴대폰 번호가 입력된 경우에만 유효성 검사 실시
+    if (phoneNumber.length > 0) { 
+        
+        // 11자리 숫자가 아닌 경우 (입력했지만 형식이 틀린 경우)
+        if (!phoneRegex.test(phoneNumber)) {
+            alert("휴대폰 번호를 입력하셨다면 '-' 없이 정확히 11자리 숫자만 입력해야 합니다.");
+            return;
+        }
+    }
+
     let param = {
       userId : userId.current.value,
       pwd : pwd.current.value,
       userName : userName.current.value,
       userEmail : userEmail.current.value,
-      userPhoneNumber : userPhoneNumber.current.value,
+      userPhoneNumber : phoneNumber,
       userAddr : userAddr.current.value
     };
 

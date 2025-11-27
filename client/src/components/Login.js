@@ -36,7 +36,13 @@ function Login() {
         alert(data.msg);
         if (data.result) {
           localStorage.setItem("token", data.token);
-          navigate("/feedList");
+          const decoded = jwtDecode(data.token);
+
+          if (decoded.status === 'A') { 
+            navigate("/admin"); // 관리자 페이지로 이동
+          } else {
+            navigate("/feedList"); // 일반 사용자는 FeedList로 이동
+          }
         }
       })
       .catch(error => {

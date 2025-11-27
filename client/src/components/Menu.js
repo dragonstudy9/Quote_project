@@ -3,7 +3,7 @@ import { Drawer, List, ListItem, ListItemText, Typography, Toolbar, ListItemIcon
 import { Home, Add, AccountCircle } from '@mui/icons-material';
 import AppsIcon from '@mui/icons-material/Apps';
 import { Link } from 'react-router-dom';
-import Mui from './Mui';
+
 
 function Menu() {
   return (
@@ -50,12 +50,12 @@ function Menu() {
           <ListItemText primary="마이페이지" />
         </ListItem>
 
-         <ListItem button component={Link} to="/mui">
+         {/* <ListItem button component={Link} to="/mui">
           <ListItemIcon>
             <Home />
           </ListItemIcon>
           <ListItemText primary="mui테스트" />
-        </ListItem>
+        </ListItem> */}
 
         
       </List>
