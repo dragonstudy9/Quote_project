@@ -17,8 +17,88 @@ function FeedList() {
   let navigate = useNavigate();
   let [feeds, setFeeds] = useState([]);
 
+
   // 1. ✅ 전체 피드 목록을 가져오는 함수 (인증 불필요)
   function fnFeeds() {
+
+    // [uploaded:FeedList.js] 파일 내, fnFeeds 함수 아래 또는 상단에 추가
+
+  // 2. ✅ 특정 피드의 댓글 목록을 가져오는 함수
+  function fnLoadComments(feedNo) {
+    fetch(`http://localhost:3010/feed/comments/${feedNo}`) // 🔑 댓글 조회 API 호출
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('댓글 로드 실패');
+        }
+        return res.json();
+      })
+      .then(data => {
+        // 💡 댓글의 필드명을 서버 API에 맞게 매핑할 필요가 있습니다.
+        // 서버에서 이미 id, text, user 필드명으로 맞춰주었으므로 바로 사용합니다.
+        setComments(data.list);
+      })
+      .catch(error => {
+        console.error("댓글 로드 에러:", error);
+        setComments([]);
+      });
+  }
+
+  // 3. ✅ 피드 클릭 시 실행되는 함수 수정 (댓글 로드 로직 추가)
+    const handleClickOpen = (feed) => {
+      setSelectedFeed(feed);
+      setOpen(true);
+      // 🔑 피드를 열 때 해당 피드의 댓글을 로드
+      fnLoadComments(feed.id); 
+    };
+
+    // 4. ✅ 댓글 등록 함수
+  const handleAddComment = () => {
+    if (!newComment.trim()) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("로그인 후 댓글을 작성할 수 있습니다.");
+        navigate("/");
+        return;
+    }
+
+    // 💡 서버의 POST /feed/comment API 호출
+    fetch("http://localhost:3010/feed/comment", {
+        method: "POST",
+        headers: {
+            "Content-type": "application/json",
+            "Authorization": "Bearer " + token // 인증 토큰 포함
+        },
+        body: JSON.stringify({
+            feedNo: selectedFeed.id, // 현재 선택된 피드 번호
+            feedComment: newComment // 새로 작성한 댓글 내용
+        })
+    })
+    .then(res => {
+        if (res.status === 401) {
+            alert("로그인 정보가 유효하지 않습니다.");
+            throw new Error('Auth Failed');
+        }
+        if (!res.ok) {
+            alert("댓글 등록에 실패했습니다.");
+            throw new Error('Registration Failed');
+        }
+        return res.json();
+    })
+    .then(data => {
+        alert(data.msg); // "댓글이 성공적으로 등록되었습니다."
+        setNewComment(''); // 입력창 초기화
+        // 🔑 댓글 등록 후 목록을 다시 로드하여 갱신
+        fnLoadComments(selectedFeed.id); 
+    })
+    .catch(error => {
+        console.error("댓글 등록 오류:", error);
+    });
+  };
+
     // 💡 JWT 토큰 유무만 확인하고, 인증이 필요 없는 /list API를 호출합니다.
     const token = localStorage.getItem("token");
     if (!token) {
@@ -52,6 +132,26 @@ function FeedList() {
       });
   }
 
+  // 2. ✅ 특정 피드의 댓글 목록을 가져오는 함수
+  function fnLoadComments(feedNo) {
+    fetch(`http://localhost:3010/feed/comments/${feedNo}`) // 🔑 댓글 조회 API 호출
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('댓글 로드 실패');
+        }
+        return res.json();
+      })
+      .then(data => {
+        // 💡 댓글의 필드명을 서버 API에 맞게 매핑할 필요가 있습니다.
+        // 서버에서 이미 id, text, user 필드명으로 맞춰주었으므로 바로 사용합니다.
+        setComments(data.list);
+      })
+      .catch(error => {
+        console.error("댓글 로드 에러:", error);
+        setComments([]);
+      });
+  }
+
   useEffect(() => {
     fnFeeds();
   }, []);
@@ -59,8 +159,10 @@ function FeedList() {
   // 2. ❌ 삭제/수정 로직 제거 (전체 피드 목록에서는 보통 지원하지 않음)
   // 3. 모달 열기/닫기 등 다른 로직은 기존 Feed.js 로직과 유사하게 유지
   const handleClickOpen = (feed) => {
-    setSelectedFeed(feed);
-    setOpen(true);
+   setSelectedFeed(feed);
+      setOpen(true);
+      // 🔑 피드를 열 때 해당 피드의 댓글을 로드
+      fnLoadComments(feed.id); 
   };
 
   const handleClose = () => {

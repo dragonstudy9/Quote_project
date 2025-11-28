@@ -172,7 +172,7 @@ router.get("/:userId", async (req, res) => {
                 F.CREATE_FEED_DATE AS CREATE_DATE, 
                 GROUP_CONCAT(I.IMG_PATH) AS imgPaths     
             FROM PTB_FEED F 
-            LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO /* 🔑 I.FEEDID -> I.FEED_NO로 수정 */
+            LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
             WHERE F.USER_ID = ? 
             GROUP BY 
                 F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE 
@@ -243,6 +243,40 @@ router.post('/comment', authMiddleware, async (req, res) => {
         if (connection) {
             connection.release();
         }
+    }
+});
+
+// [uploaded:feed.js] 파일에 추가
+// 6. 💬 댓글 목록 조회 API (GET /feed/comments/:feedNo)
+router.get('/comments/:feedNo', async (req, res) => {
+    const { feedNo } = req.params;
+
+    if (!feedNo) {
+        return res.status(400).json({ msg: "피드 번호가 누락되었습니다." });
+    }
+
+    try {
+        // PTB_FEED_COMMENT 테이블에서 해당 피드(FEED_NO)의 댓글을 조회합니다.
+        const sql = `
+            SELECT 
+                C.FEED_COMMENT_NO AS id, 
+                C.FEED_COMMENT AS text, 
+                C.USER_ID AS user, 
+                C.CREATE_COMMENT_DATE AS createDate
+            FROM PTB_FEED_COMMENT C
+            WHERE C.FEED_NO = ?
+            ORDER BY C.CREATE_COMMENT_DATE ASC
+        `;
+        
+        const [list] = await db.query(sql, [feedNo]);
+
+        res.json({
+            result: "success",
+            list: list
+        });
+    } catch (error) {
+        console.error("댓글 목록 조회 오류:", error);
+        res.status(500).json({ msg: "댓글 목록을 불러오는 중 서버 오류가 발생했습니다." });
     }
 });
 
