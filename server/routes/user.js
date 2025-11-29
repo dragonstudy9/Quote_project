@@ -3,7 +3,6 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require("../db");
 const jwt = require('jsonwebtoken');
-// 🔑 추가 1: JWT 인증 미들웨어 불러오기
 const authMiddleware = require("../auth"); 
 
 //아주 긴 랜덤한 문자 사용 권장
@@ -83,7 +82,6 @@ router.put('/intro', authMiddleware, async (req, res) => {
 // 📝 회원가입 API (POST /user/join)
 router.post('/join', async (req, res) => {
     let {userId, pwd, userName, userEmail, userPhoneNumber, userAddr} = req.body
-    console.log("join ==> ", req.body);
     
     // 필수 필드 체크 (추가)
     if (!userId || !pwd || !userName) {
@@ -99,7 +97,7 @@ router.post('/join', async (req, res) => {
         let sql = "INSERT INTO PTB_USER (USER_ID, USER_PASSWORD, USER_NAME, USER_EMAIL, USER_PHONE_NUMBER, USER_ADDR, USER_INTRODUCTION) VALUES(?, ?, ?, ?, ?, ?, '자기소개입니다.')";
         let [result] = await db.query(sql, [userId, hashedPassword, userName, userEmail, userPhoneNumber, userAddr]);
         
-        console.log(result);
+        // console.log(result);
 
         res.json({
             result : result,
@@ -118,7 +116,7 @@ router.post('/join', async (req, res) => {
 // 📝 로그인 API (POST /user/login)
 router.post('/login', async (req, res) => {
     let {userId, userPassword} = req.body
-    console.log("login ==> ", req.body);
+
     try {
         let sql = "SELECT * FROM PTB_USER WHERE USER_ID = ?";
         let [list] = await db.query(sql, [userId]); 
@@ -140,7 +138,6 @@ router.post('/login', async (req, res) => {
                 };
 
                 token = jwt.sign(user, JWT_KEY, {expiresIn : '1h'}); 
-                console.log(token);
                 
                 // 2. ✅ 200 OK 상태 코드 반환
                 return res.status(200).json({ 

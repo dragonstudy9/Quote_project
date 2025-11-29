@@ -280,4 +280,63 @@ router.get('/comments/:feedNo', async (req, res) => {
     }
 });
 
+
+// 7. 💬 댓글 삭제 API (DELETE /feed/comment/:commentNo)
+// 인증 미들웨어(authMiddleware)를 통해 로그인 상태 확인
+router.delete('/comment/:commentNo', authMiddleware, async (req, res) => {
+    const { commentNo } = req.params;
+    // JWT를 통해 얻은 현재 로그인 사용자 ID
+    const USER_ID = req.user.userId; 
+
+    if (!commentNo) {
+        return res.status(400).json({ msg: "댓글 번호가 누락되었습니다." });
+    }
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1. 해당 댓글이 존재하는지, 그리고 현재 사용자가 작성자인지 확인하는 쿼리
+        const checkSql = "SELECT USER_ID FROM PTB_FEED_COMMENT WHERE FEED_COMMENT_NO = ?";
+        const [commentRows] = await connection.query(checkSql, [commentNo]);
+
+        if (commentRows.length === 0) {
+            return res.status(404).json({ msg: "존재하지 않는 댓글입니다." });
+        }
+
+        // 2. 작성자 확인 (인가/Authorization)
+        if (commentRows[0].USER_ID !== USER_ID) {
+            // 다른 사용자의 댓글 삭제 시도 방지
+            return res.status(403).json({ msg: "댓글 삭제 권한이 없습니다." });
+        }
+
+        // 3. 댓글 삭제 쿼리 실행
+        const deleteSql = "DELETE FROM PTB_FEED_COMMENT WHERE FEED_COMMENT_NO = ?";
+        const [result] = await connection.query(deleteSql, [commentNo]);
+        
+        await connection.commit();
+        
+        if (result.affectedRows > 0) {
+            res.status(200).json({ 
+                result: "success", 
+                msg: "댓글이 성공적으로 삭제되었습니다."
+            });
+        } else {
+            res.status(500).json({ msg: "댓글 삭제에 실패했습니다." });
+        }
+
+    } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
+        console.error("댓글 삭제 오류:", error);
+        res.status(500).json({ msg: "서버 오류로 인해 댓글 삭제에 실패했습니다." });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
+    }
+});
+
 module.exports = router;

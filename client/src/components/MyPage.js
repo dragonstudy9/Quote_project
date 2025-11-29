@@ -101,15 +101,7 @@ function MyPage() {
           </Typography>
         </Box>
         <Grid container spacing={2} sx={{ marginTop: 2 }}>
-          <Grid item xs={4} textAlign="center">
-            <Typography variant="h6">팔로워</Typography>
-            <Typography variant="body1">{user?.follower || 0}</Typography>
-          </Grid>
-          <Grid item xs={4} textAlign="center">
-            <Typography variant="h6">팔로잉</Typography>
-            <Typography variant="body1">{user?.following || 0}</Typography>
-          </Grid>
-          <Grid item xs={4} textAlign="center">
+          <Grid item xs={12} textAlign="center">
             <Typography variant="h6">게시물</Typography>
             <Typography variant="body1">{user?.cnt || 0}</Typography>
           </Grid>

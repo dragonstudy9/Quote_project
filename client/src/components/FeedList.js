@@ -18,100 +18,36 @@ function FeedList() {
   let [feeds, setFeeds] = useState([]);
 
 
+  const getCurrentUserId = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        return decoded.userId;
+      } catch (e) {
+        console.error("토큰 디코딩 실패:", e);
+        return null;
+      }
+    }
+    return null;
+  };
+
   // 1. ✅ 전체 피드 목록을 가져오는 함수 (인증 불필요)
   function fnFeeds() {
-
-    // [uploaded:FeedList.js] 파일 내, fnFeeds 함수 아래 또는 상단에 추가
-
-  // 2. ✅ 특정 피드의 댓글 목록을 가져오는 함수
-  function fnLoadComments(feedNo) {
-    fetch(`http://localhost:3010/feed/comments/${feedNo}`) // 🔑 댓글 조회 API 호출
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('댓글 로드 실패');
-        }
-        return res.json();
-      })
-      .then(data => {
-        // 💡 댓글의 필드명을 서버 API에 맞게 매핑할 필요가 있습니다.
-        // 서버에서 이미 id, text, user 필드명으로 맞춰주었으므로 바로 사용합니다.
-        setComments(data.list);
-      })
-      .catch(error => {
-        console.error("댓글 로드 에러:", error);
-        setComments([]);
-      });
-  }
-
-  // 3. ✅ 피드 클릭 시 실행되는 함수 수정 (댓글 로드 로직 추가)
-    const handleClickOpen = (feed) => {
-      setSelectedFeed(feed);
-      setOpen(true);
-      // 🔑 피드를 열 때 해당 피드의 댓글을 로드
-      fnLoadComments(feed.id); 
-    };
-
-    // 4. ✅ 댓글 등록 함수
-  const handleAddComment = () => {
-    if (!newComment.trim()) {
-      alert("댓글 내용을 입력해주세요.");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-        alert("로그인 후 댓글을 작성할 수 있습니다.");
-        navigate("/");
-        return;
-    }
-
-    // 💡 서버의 POST /feed/comment API 호출
-    fetch("http://localhost:3010/feed/comment", {
-        method: "POST",
-        headers: {
-            "Content-type": "application/json",
-            "Authorization": "Bearer " + token // 인증 토큰 포함
-        },
-        body: JSON.stringify({
-            feedNo: selectedFeed.id, // 현재 선택된 피드 번호
-            feedComment: newComment // 새로 작성한 댓글 내용
-        })
-    })
-    .then(res => {
-        if (res.status === 401) {
-            alert("로그인 정보가 유효하지 않습니다.");
-            throw new Error('Auth Failed');
-        }
-        if (!res.ok) {
-            alert("댓글 등록에 실패했습니다.");
-            throw new Error('Registration Failed');
-        }
-        return res.json();
-    })
-    .then(data => {
-        alert(data.msg); // "댓글이 성공적으로 등록되었습니다."
-        setNewComment(''); // 입력창 초기화
-        // 🔑 댓글 등록 후 목록을 다시 로드하여 갱신
-        fnLoadComments(selectedFeed.id); 
-    })
-    .catch(error => {
-        console.error("댓글 등록 오류:", error);
-    });
-  };
 
     // 💡 JWT 토큰 유무만 확인하고, 인증이 필요 없는 /list API를 호출합니다.
     const token = localStorage.getItem("token");
     if (!token) {
-        // 토큰이 없으면 로그인 페이지로 이동 (선택적)
-        // alert("로그인 후 이용해 주세요!");
-        // navigate("/");
-        // return;
+      // 토큰이 없으면 로그인 페이지로 이동 (선택적)
+      alert("로그인 후 이용해 주세요!");
+      navigate("/");
+      return;
     }
 
     fetch("http://localhost:3010/feed/list") // 🔑 전체 피드 API 호출
       .then(res => {
         if (!res.ok) {
-            throw new Error('Network response was not ok');
+          throw new Error('Network response was not ok');
         }
         return res.json();
       })
@@ -120,15 +56,15 @@ function FeedList() {
         const feedsData = data && data.list && data.result === "success" ? data.list : [];
 
         const formattedFeeds = feedsData.map(feed => ({
-             ...feed,
-             // imgPaths 배열에서 첫 번째 이미지만 CardMedia에 사용
-             imgPath: feed.imgPaths && feed.imgPaths.length > 0 ? feed.imgPaths[0] : null
+          ...feed,
+          // imgPaths 배열에서 첫 번째 이미지만 CardMedia에 사용
+          imgPath: feed.imgPaths && feed.imgPaths.length > 0 ? feed.imgPaths[0] : null
         }));
         setFeeds(formattedFeeds);
       })
       .catch(error => {
-          console.error("전체 피드 조회 실패:", error);
-          alert("전체 피드 목록을 가져오는 중 오류가 발생했습니다.");
+        console.error("전체 피드 조회 실패:", error);
+        alert("전체 피드 목록을 가져오는 중 오류가 발생했습니다.");
       });
   }
 
@@ -156,92 +92,126 @@ function FeedList() {
     fnFeeds();
   }, []);
 
-  // 2. ❌ 삭제/수정 로직 제거 (전체 피드 목록에서는 보통 지원하지 않음)
   // 3. 모달 열기/닫기 등 다른 로직은 기존 Feed.js 로직과 유사하게 유지
   const handleClickOpen = (feed) => {
-   setSelectedFeed(feed);
-      setOpen(true);
-      // 🔑 피드를 열 때 해당 피드의 댓글을 로드
-      fnLoadComments(feed.id); 
+    setSelectedFeed(feed);
+    setOpen(true);
+    fnLoadComments(feed.id); // 🔑 피드를 열 때 해당 피드의 댓글을 로드
   };
 
   const handleClose = () => {
     setOpen(false);
     setSelectedFeed(null);
   };
-  
+
   // 댓글 추가 핸들러 함수
-const handleAddComment = () => {
+  const handleAddComment = () => {
     const token = localStorage.getItem("token");
     if (!token) {
-        alert("로그인 후 댓글을 작성해주세요!");
-        navigate("/"); 
-        return;
+      alert("로그인 후 댓글을 작성해주세요!");
+      navigate("/");
+      return;
     }
-    
+
     // 1. 입력값 확인
     if (!newComment.trim()) {
-        alert("댓글 내용을 입력해주세요!");
-        return;
+      alert("댓글 내용을 입력해주세요!");
+      return;
     }
 
     if (!selectedFeed) return;
-    
+
     const decoded = jwtDecode(token);
     const userId = decoded.userId;
-    
+
     // 2. 서버에 전송할 데이터 준비
     const param = {
-        feedNo: selectedFeed.id, 
-        feedComment: newComment, // 🔑 서버 API에 맞춰 키를 'feedComment'로 설정
+      feedNo: selectedFeed.id,
+      feedComment: newComment, // 🔑 서버 API에 맞춰 키를 'feedComment'로 설정
     };
 
     // 3. API 호출
     fetch("http://localhost:3010/feed/comment", {
-        method: "POST",
-        headers: {
-            "Content-type": "application/json",
-            "Authorization": "Bearer " + token 
-        },
-        body: JSON.stringify(param)
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify(param)
     })
-    .then(res => {
+      .then(res => {
         if (!res.ok) {
-            // 서버 에러 처리 (4xx, 5xx)
-            return res.json().then(err => {
-                alert("댓글 등록 실패: " + (err.msg || "알 수 없는 오류"));
-                throw new Error("API failed");
-            });
+          // 서버 에러 처리 (4xx, 5xx)
+          return res.json().then(err => {
+            alert("댓글 등록 실패: " + (err.msg || "알 수 없는 오류"));
+            throw new Error("API failed");
+          });
         }
         return res.json();
-    })
-    .then(data => {
+      })
+      .then(data => {
         // 4. 성공적으로 등록되면 UI 업데이트
         alert(data.msg);
         setNewComment(''); // 입력 필드 초기화
-        
+
         // 5. 📢 댓글 목록을 상태에 추가하여 즉시 반영
         const newCommentObject = {
-            id: data.insertId, 
-            text: param.feedComment, // 새로운 댓글 내용을 사용
-            user: userId, 
-            // 💡 주의: 현재는 사용자 ID만 표시됩니다. 사용자 이름(userName)을 표시하려면 
-            // 서버에서 댓글 조회 API를 만들 때 JOIN하여 사용자 이름도 가져와야 합니다.
+          id: data.insertId,
+          text: param.feedComment, // 새로운 댓글 내용을 사용
+          user: userId,
+          // 💡 주의: 현재는 사용자 ID만 표시됩니다. 사용자 이름(userName)을 표시하려면 
+          // 서버에서 댓글 조회 API를 만들 때 JOIN하여 사용자 이름도 가져와야 합니다.
         };
-        
+
         setComments(prev => [...prev, newCommentObject]);
-        
-    })
-    .catch(error => {
+
+      })
+      .catch(error => {
         console.error("댓글 등록 중 오류:", error);
-    });
-};
+      });
+  };
+
+
+  // 4. ✅ 댓글 삭제 함수
+  const handleDeleteComment = async (commentNo) => {
+    if (!window.confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3010/feed/comment/${commentNo}`, {
+        method: 'DELETE',
+        headers: {
+          // 백엔드에서 인증 미들웨어를 사용하므로 토큰을 헤더에 추가해야 합니다.
+          'Authorization': `Bearer ${localStorage.getItem("token")}`, 
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(data.msg);
+        // 삭제 성공 후 댓글 목록 새로고침
+        // fnLoadComments 함수를 selectedFeed의 feedNo와 함께 재호출
+        if (selectedFeed) {
+          console.log("댓글 삭제 후 댓글 목록 새로고침 selectedFeed:", selectedFeed.id);
+          fnLoadComments(selectedFeed.id); 
+        }
+      } else {
+        alert("삭제 실패: " + data.msg);
+      }
+
+    } catch (error) {
+      console.error("댓글 삭제 중 에러 발생:", error);
+      alert("댓글 삭제 처리 중 오류가 발생했습니다.");
+    }
+  };
 
   // 4. 컴포넌트 렌더링 (FeedList는 삭제 버튼 없이 피드만 보여줌)
   return (
     <Container maxWidth="lg" style={{ marginTop: '20px' }}>
       <Typography variant="h5" gutterBottom>
-        🌐 전체 피드 목록
+        🌐 전체 명언 목록
       </Typography>
       <Grid container spacing={4}>
         {feeds.map((feed) => (
@@ -270,7 +240,7 @@ const handleAddComment = () => {
           </Grid>
         ))}
       </Grid>
-      
+
       {/* 상세 모달 다이얼로그 (생략된 부분은 기존 Feed.js와 유사하게 유지) */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -280,52 +250,64 @@ const handleAddComment = () => {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
-            {/* 이미지 표시 (첫 번째 이미지만) */}
-            {selectedFeed?.imgPath && (
-                <Box mb={2}>
-                    <img src={selectedFeed.imgPath} alt="Selected Feed" style={{ width: '100%', borderRadius: '4px' }} />
-                </Box>
-            )}
-            <Typography variant="body1" paragraph>
-                {selectedFeed?.FEED_CONTENTS}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-                작성자: {selectedFeed?.USER_ID} | 날짜: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
-            </Typography>
-
-            {/* 댓글 목록 및 추가 UI (생략) */}
-            <Box mt={3}>
-                <Typography variant="h6">댓글</Typography>
-                <List>
-                    {comments.map((comment) => (
-                        <ListItem key={comment.id} disablePadding>
-                            <ListItemAvatar>
-                                <Avatar>{comment.user.charAt(0)}</Avatar>
-                            </ListItemAvatar>
-                            <ListItemText primary={comment.text} secondary={comment.user} />
-                        </ListItem>
-                    ))}
-                </List>
-                <TextField
-                    fullWidth
-                    label="댓글 추가"
-                    variant="outlined"
-                    size="small"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            handleAddComment();
-                            e.preventDefault();
-                        }
-                    }}
-                />
-                <Button variant="contained" color="primary" onClick={handleAddComment} sx={{ marginTop: 1 }}>
-                    댓글 추가
-                </Button>
+          {/* 이미지 표시 (첫 번째 이미지만) */}
+          {selectedFeed?.imgPath && (
+            <Box mb={2}>
+              <img src={selectedFeed.imgPath} alt="Selected Feed" style={{ width: '100%', borderRadius: '4px' }} />
             </Box>
+          )}
+          <Typography variant="body1" paragraph>
+            {selectedFeed?.FEED_CONTENTS}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            작성자: {selectedFeed?.USER_ID} | 날짜: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
+          </Typography>
+
+          {/* 댓글 목록 및 추가 UI */}
+          <Box mt={3}>
+            <Typography variant="h6">댓글</Typography>
+            <List>
+              {comments.map((comment) => (
+                <ListItem key={comment.id} disablePadding>
+                  <ListItemAvatar>
+                    <Avatar>{comment.user.charAt(0)}</Avatar>
+                  </ListItemAvatar>
+                  <ListItemText primary={comment.text} secondary={comment.user} />
+                  {/* 🔑 현재 로그인 사용자와 댓글 작성자가 같을 때만 버튼 표시 */}
+                  {getCurrentUserId() === comment.user && ( 
+                    <IconButton 
+                      edge="end" 
+                      aria-label="delete" 
+                      onClick={() => handleDeleteComment(comment.id)} // commentNo 대신 comment.id 사용
+                      size="small"
+                      sx={{ ml: 1 }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </ListItem>
+              ))}
+            </List>
+            <TextField
+              fullWidth
+              label="댓글 추가"
+              variant="outlined"
+              size="small"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddComment();
+                  e.preventDefault();
+                }
+              }}
+            />
+            <Button variant="contained" color="primary" onClick={handleAddComment} sx={{ marginTop: 1 }}>
+              댓글 추가
+            </Button>
+          </Box>
         </DialogContent>
-        {/* 💡 삭제 버튼 없음 */}
+        
         <DialogActions>
           <Button onClick={handleClose} color="primary">
             닫기
