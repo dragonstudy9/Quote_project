@@ -94,7 +94,7 @@ function Register() {
             피드 등록
         </Typography>
 
-        <FormControl fullWidth margin="normal">
+        {/* <FormControl fullWidth margin="normal">
             <InputLabel>카테고리</InputLabel>
             <Select
             // value={age}
@@ -105,7 +105,7 @@ function Register() {
             <MenuItem value={2}>일상</MenuItem>
             <MenuItem value={3}>음식</MenuItem>
             </Select>
-        </FormControl>
+        </FormControl> */}
 
         <TextField inputRef={titleRef} label="제목" variant="outlined" margin="normal" fullWidth />
         <TextField
@@ -116,8 +116,8 @@ function Register() {
             fullWidth
             multiline
             rows={4}
-
         />
+         
 
         {/* 파일 첨부 (하나만 가능) multiple 속성 주면 여러 개 가능*/}
         <Box display="flex" alignItems="center" margin="normal" fullWidth>
