@@ -3,7 +3,7 @@ import {
   Grid, AppBar, Toolbar, Typography, Container, Box,
   Card, CardMedia, CardContent, Dialog, DialogTitle,
   DialogContent, IconButton, DialogActions, Button,
-  TextField, List, ListItem, ListItemText, ListItemAvatar, Avatar
+  TextField, List, ListItem, ListItemText, ListItemAvatar, Avatar, InputAdornment
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,10 @@ function FeedList() {
   const [newComment, setNewComment] = useState('');
   let navigate = useNavigate();
   let [feeds, setFeeds] = useState([]);
+  // 🔑 검색어 입력 상태 추가
+  const [searchTerm, setSearchTerm] = useState('');
+  // 🔑 실제 검색을 실행할 쿼리 상태 (검색 버튼/Enter 키 입력 시 업데이트)
+  const [searchQuery, setSearchQuery] = useState('');
 
 
   const getCurrentUserId = () => {
@@ -33,7 +37,7 @@ function FeedList() {
   };
 
   // 1. ✅ 전체 피드 목록을 가져오는 함수 (인증 불필요)
-  function fnFeeds() {
+  function fnFeeds(query = '') {
 
     // 💡 JWT 토큰 유무만 확인하고, 인증이 필요 없는 /list API를 호출합니다.
     const token = localStorage.getItem("token");
@@ -44,7 +48,10 @@ function FeedList() {
       return;
     }
 
-    fetch("http://localhost:3010/feed/list") // 🔑 전체 피드 API 호출
+    // 🔑 검색 쿼리 스트링 추가
+    const queryString = query ? `?q=${encodeURIComponent(query)}` : '';
+
+    fetch(`http://localhost:3010/feed/list${queryString}`) // 🔑 API 호출에 쿼리 스트링 추가
       .then(res => {
         if (!res.ok) {
           throw new Error('Network response was not ok');
@@ -183,7 +190,7 @@ function FeedList() {
         method: 'DELETE',
         headers: {
           // 백엔드에서 인증 미들웨어를 사용하므로 토큰을 헤더에 추가해야 합니다.
-          'Authorization': `Bearer ${localStorage.getItem("token")}`, 
+          'Authorization': `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
@@ -195,7 +202,7 @@ function FeedList() {
         // fnLoadComments 함수를 selectedFeed의 feedNo와 함께 재호출
         if (selectedFeed) {
           console.log("댓글 삭제 후 댓글 목록 새로고침 selectedFeed:", selectedFeed.id);
-          fnLoadComments(selectedFeed.id); 
+          fnLoadComments(selectedFeed.id);
         }
       } else {
         alert("삭제 실패: " + data.msg);
@@ -210,6 +217,37 @@ function FeedList() {
   // 4. 컴포넌트 렌더링 (FeedList는 삭제 버튼 없이 피드만 보여줌)
   return (
     <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+      <Box mt={3} mb={3} display="flex" gap={2}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="검색어를 입력하세요..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setSearchQuery(searchTerm);  // 실제 검색어 업데이트
+              fnFeeds(searchTerm);         // 검색 실행
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">🔍</InputAdornment>
+            ),
+          }}
+        />
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => {
+            setSearchQuery(searchTerm);
+            fnFeeds(searchTerm);
+          }}
+        >
+          검색
+        </Button>
+      </Box>
       <Typography variant="h5" gutterBottom>
         🌐 전체 명언 목록
       </Typography>
@@ -274,10 +312,10 @@ function FeedList() {
                   </ListItemAvatar>
                   <ListItemText primary={comment.text} secondary={comment.user} />
                   {/* 🔑 현재 로그인 사용자와 댓글 작성자가 같을 때만 버튼 표시 */}
-                  {getCurrentUserId() === comment.user && ( 
-                    <IconButton 
-                      edge="end" 
-                      aria-label="delete" 
+                  {getCurrentUserId() === comment.user && (
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
                       onClick={() => handleDeleteComment(comment.id)} // commentNo 대신 comment.id 사용
                       size="small"
                       sx={{ ml: 1 }}
@@ -307,7 +345,7 @@ function FeedList() {
             </Button>
           </Box>
         </DialogContent>
-        
+
         <DialogActions>
           <Button onClick={handleClose} color="primary">
             닫기

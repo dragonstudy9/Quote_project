@@ -64,9 +64,11 @@ router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
 // routes/feed.js 파일 내 router.get("/list", ...) 부분 수정
 
 router.get("/list", async (req, res) => {
+    const q = req.query.q ? `%${req.query.q}%` : '%';
+
     try {
-        let sql = 
-            `SELECT
+        let sql = `
+            SELECT
                 F.FEED_NO AS id, 
                 F.USER_ID, 
                 F.FEED_TITLE,            
@@ -76,23 +78,23 @@ router.get("/list", async (req, res) => {
             FROM PTB_FEED F
             JOIN PTB_USER U ON F.USER_ID = U.USER_ID
             LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
+            WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ?)
             GROUP BY 
                 F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE, U.USER_NAME 
             ORDER BY F.CREATE_FEED_DATE DESC
-            `;
-        let [list] = await db.query(sql);
+        `;
 
-        // ... (이후 formattedList 로직은 유지) ...
+        let [list] = await db.query(sql, [q, q]);
+
         const formattedList = list.map(feed => ({
             ...feed,
             imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : []
         }));
 
         res.json({
-            list : formattedList,
-            result : "success"
+            list: formattedList,
+            result: "success"
         });
-
     } catch (error) {
         console.error("피드 목록 조회 중 오류:", error);
         res.status(500).json({ 
