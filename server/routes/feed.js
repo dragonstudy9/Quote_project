@@ -277,4 +277,65 @@ router.delete('/comment/:commentNo', authMiddleware, async (req, res) => {
     }
 });
 
+// ----------------------
+// 8. 피드 태그 삭제
+// ----------------------
+router.delete('/tag/:feedId/:tagName', authMiddleware, async (req, res) => {
+    const { feedId, tagName } = req.params;
+    const currentUserId = req.user.userId;
+    const currentUserStatus = req.user.status; // 관리자 여부 확인
+
+    if (!feedId || !tagName) return res.status(400).json({ msg: "피드 번호와 태그명이 필요합니다." });
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1) 피드 존재 여부 확인
+        const [feedRows] = await connection.query("SELECT USER_ID FROM PTB_FEED WHERE FEED_NO = ?", [feedId]);
+        if (feedRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ msg: "해당 피드가 존재하지 않습니다." });
+        }
+
+        const feedOwnerId = feedRows[0].USER_ID;
+        if (currentUserStatus !== 'A' && currentUserId !== feedOwnerId) {
+            await connection.rollback();
+            return res.status(403).json({ msg: "❌ 태그 삭제 권한이 없습니다." });
+        }
+
+        // 2) 태그 존재 여부 확인
+        const [tagRows] = await connection.query("SELECT TAG_NO FROM PTB_TAG_LIST WHERE TAG_NAME = ?", [tagName]);
+        if (tagRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ msg: "삭제할 태그가 존재하지 않습니다." });
+        }
+
+        const tagNo = tagRows[0].TAG_NO;
+
+        // 3) 피드-태그 연결 삭제
+        const [deleteResult] = await connection.query(
+            "DELETE FROM PTB_FEED_TAG WHERE FEED_NO = ? AND TAG_NO = ?",
+            [feedId, tagNo]
+        );
+
+        if (deleteResult.affectedRows === 0) {
+            await connection.rollback();
+            return res.status(404).json({ msg: "삭제할 태그 연결이 존재하지 않습니다." });
+        }
+
+        await connection.commit();
+        res.json({ result: "success", msg: `태그 '${tagName}'가 삭제되었습니다.` });
+
+    } catch (err) {
+        if (connection) await connection.rollback();
+        console.error("태그 삭제 오류:", err);
+        res.status(500).json({ msg: "서버 오류로 태그 삭제에 실패했습니다." });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+
 module.exports = router;

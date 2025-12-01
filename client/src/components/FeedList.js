@@ -127,8 +127,48 @@ function FeedList() {
     }
   };
 
+  // 🔥 태그 클릭 핸들러 (검색용)
+  const handleTagClick = (tag) => {
+    setSearchTerm(tag);
+    setSearchQuery(tag);
+    fnFeeds(tag);
+    handleClose();
+  };
+
+  // 🔥 태그 삭제 핸들러
+  const handleDeleteTag = async (tagName) => {
+    if (!window.confirm(`태그 '${tagName}'를 삭제하시겠습니까?`)) return;
+    try {
+      const response = await fetch(`http://localhost:3010/feed/tag/${selectedFeed.id}/${encodeURIComponent(tagName)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.msg);
+        // 삭제 후 selectedFeed 상태에서 태그 제거
+        setSelectedFeed(prev => ({
+          ...prev,
+          tags: prev.tags.filter(tag => tag !== tagName)
+        }));
+        // 전체 feed 목록에서도 해당 태그 제거
+        setFeeds(prevFeeds => prevFeeds.map(feed => 
+          feed.id === selectedFeed.id 
+            ? { ...feed, tags: feed.tags.filter(tag => tag !== tagName) } 
+            : feed
+        ));
+      } else {
+        alert("태그 삭제 실패: " + data.msg);
+      }
+    } catch (error) {
+      console.error("태그 삭제 에러:", error);
+      alert("태그 삭제 처리 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+      {/* 검색창 */}
       <Box mt={3} mb={3} display="flex" gap={2}>
         <TextField
           fullWidth
@@ -157,7 +197,7 @@ function FeedList() {
                 <Typography variant="caption" display="block" color="text.disabled">
                   {feed.USER_ID} - {new Date(feed.CREATE_DATE).toLocaleDateString()}
                 </Typography>
-                {/* 🔥 태그 표시 + 클릭 시 검색 */}
+                {/* 🔥 태그 표시 */}
                 <Box mt={1}>
                   {feed.tags.map((tag, idx) => (
                     <Button
@@ -165,11 +205,7 @@ function FeedList() {
                       size="small"
                       variant="outlined"
                       sx={{ mr: 0.5, mb: 0.5 }}
-                      onClick={() => {
-                        setSearchTerm(tag);
-                        setSearchQuery(tag);
-                        fnFeeds(tag);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
                     >
                       #{tag}
                     </Button>
@@ -195,23 +231,25 @@ function FeedList() {
           <Typography variant="caption" color="text.secondary">
             작성자: {selectedFeed?.USER_ID} | 날짜: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
           </Typography>
-          {/* 🔥 상세 모달 태그 표시 + 클릭 시 검색 */}
+
+          {/* 🔥 상세 모달 태그 + 삭제 */}
           <Box mt={1} mb={2}>
             {selectedFeed?.tags.map((tag, idx) => (
-              <Button
-                key={idx}
-                size="small"
-                variant="outlined"
-                sx={{ mr: 0.5, mb: 0.5 }}
-                onClick={() => {
-                  setSearchTerm(tag);
-                  setSearchQuery(tag);
-                  fnFeeds(tag);
-                  handleClose(); // 클릭 시 모달 닫고 검색 결과 확인
-                }}
-              >
-                #{tag}
-              </Button>
+              <Box key={idx} display="inline-flex" alignItems="center" sx={{ mr: 0.5, mb: 0.5 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleTagClick(tag)}
+                >
+                  #{tag}
+                </Button>
+                 {/* ❌ 작성자 본인일 때만 삭제 버튼 */}
+                {selectedFeed.USER_ID === getCurrentUserId() && (
+                  <IconButton size="small" onClick={() => handleDeleteTag(tag)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
             ))}
           </Box>
 

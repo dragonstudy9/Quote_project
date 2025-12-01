@@ -124,6 +124,37 @@ function MyFeed() {
       .catch(error => console.error("삭제 에러:", error));
   };
 
+  // 🔥 태그 삭제 함수
+  const handleDeleteTag = async (feedId, tag) => {
+    if (!window.confirm(`정말로 태그 "${tag}"를 삭제하시겠습니까?`)) return;
+
+    try {
+      const response = await fetch(`http://localhost:3010/feed/tag/${feedId}/${encodeURIComponent(tag)}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.msg);
+        setFeeds(prevFeeds =>
+          prevFeeds.map(feed =>
+            feed.id === feedId
+              ? { ...feed, tags: feed.tags.filter(t => t !== tag) }
+              : feed
+          )
+        );
+        if (selectedFeed && selectedFeed.id === feedId) {
+          setSelectedFeed(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+        }
+      } else {
+        alert("태그 삭제 실패: " + data.msg);
+      }
+    } catch (error) {
+      console.error("태그 삭제 에러:", error);
+      alert("태그 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   // 🔥 검색 시 제목, 내용, 태그 포함
   const filteredFeeds = feeds.filter(feed => {
     const keyword = searchText.toLowerCase();
@@ -164,7 +195,7 @@ function MyFeed() {
                   {feed.USER_ID} - {new Date(feed.CREATE_DATE).toLocaleDateString()}
                 </Typography>
 
-                {/* 🔥 태그 표시 + 클릭 시 검색 */}
+                {/* 🔥 카드에서는 태그 X 버튼 제거 */}
                 <Box mt={1}>
                   {feed.tags.map((tag, idx) => (
                     <Button
@@ -200,12 +231,19 @@ function MyFeed() {
             작성자: {selectedFeed?.USER_ID} | 날짜: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
           </Typography>
 
-          {/* 태그 표시 */}
+          {/* 🔥 모달에서는 작성자만 태그 X 버튼 표시 */}
           <Box mt={1} mb={2}>
             {selectedFeed?.tags.map((tag, idx) => (
-              <Button key={idx} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} onClick={() => setSearchText(tag)}>
-                #{tag}
-              </Button>
+              <Box key={idx} display="inline-flex" alignItems="center" sx={{ mr: 0.5, mb: 0.5 }}>
+                <Button size="small" variant="outlined" onClick={() => setSearchText(tag)}>
+                  #{tag}
+                </Button>
+                {selectedFeed.USER_ID === getCurrentUserId() && (
+                  <IconButton size="small" onClick={() => handleDeleteTag(selectedFeed.id, tag)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
             ))}
           </Box>
 
