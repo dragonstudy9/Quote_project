@@ -398,6 +398,73 @@ router.post('/tag', authMiddleware, async (req, res) => {
     }
 });
 
+// 좋아요 추가
+router.post('/like', authMiddleware, async (req, res) => {
+    const { feedNo, userId } = req.body;
+    if (!feedNo || !userId) return res.status(400).json({ msg: "피드 번호와 사용자 ID 필요" });
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 중복 확인
+        const [exists] = await connection.query(
+            "SELECT * FROM PTB_FEED_LIKE WHERE FEED_NO = ? AND USER_ID = ?", 
+            [feedNo, userId]
+        );
+        if (exists.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ msg: "이미 좋아요를 누르셨습니다." });
+        }
+
+        // 좋아요 추가
+        await connection.query(
+            "INSERT INTO PTB_FEED_LIKE (FEED_NO, USER_ID) VALUES (?, ?)",
+            [feedNo, userId]
+        );
+
+        await connection.commit();
+        res.json({ result: "success", msg: "좋아요가 등록되었습니다." });
+
+    } catch (err) {
+        if (connection) await connection.rollback();
+        console.error("좋아요 추가 오류:", err);
+        res.status(500).json({ msg: "서버 오류로 좋아요 등록 실패" });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+
+// 특정 사용자가 좋아요 누른 피드 목록 조회
+router.get('/likes/:userId', authMiddleware, async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const sql = "SELECT FEED_NO FROM PTB_FEED_LIKE WHERE USER_ID = ?";
+        const [list] = await db.query(sql, [userId]);
+        res.json({ result: "success", list });
+    } catch (err) {
+        console.error("좋아요 목록 조회 오류:", err);
+        res.status(500).json({ result: "fail", list: [], msg: "서버 오류" });
+    }
+});
+
+router.delete('/like', authMiddleware, async (req, res) => {
+    const { feedNo, userId } = req.body;
+    if (!feedNo || !userId) return res.status(400).json({ msg: "피드 번호와 사용자 ID 필요" });
+
+    try {
+        const [result] = await db.query(
+            "DELETE FROM PTB_FEED_LIKE WHERE FEED_NO = ? AND USER_ID = ?",
+            [feedNo, userId]
+        );
+        res.json({ result: result.affectedRows > 0 ? "success" : "fail", msg: result.affectedRows > 0 ? "좋아요 취소됨" : "좋아요가 없습니다." });
+    } catch (err) {
+        console.error("좋아요 삭제 오류:", err);
+        res.status(500).json({ msg: "서버 오류" });
+    }
+});
 
 
 module.exports = router;

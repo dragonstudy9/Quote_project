@@ -76,9 +76,9 @@ INSERT INTO PTB_USER (USER_ID, USER_PASSWORD, USER_NAME, USER_EMAIL, USER_INTROD
 -- 2. PTB_FEED 데이터 추가
 -- 명언 1: USER_ID 'inspirer_u1' 작성
 INSERT INTO PTB_FEED (USER_ID, FEED_TITLE, FEED_CONTENTS, QUOTE_BACKGROUND) VALUES
-('inspirer_u1', '멈추지 않는 성장의 명언', '어제보다 나은 오늘이 될 수 있다면, 그것이 바로 성장이다.', ''),
+('inspirer_u1', '살아야 한다.', '삶이 있는 한 희망은 있다', '키케로'),
 -- 명언 2: USER_ID 'seeker_u2' 작성
-('seeker_u2', '가장 중요한 가치', '가장 중요한 것은 꺾이지 않는 마음.', '');
+('seeker_u2', '치열한 삶', '산다는것 그것은 치열한 전투이다.', '로망로랑');
 
 
 -- 3. PTB_TAG_LIST 데이터 추가
