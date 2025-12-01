@@ -12,18 +12,17 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ----------------------
-// 1. 피드 생성 + 이미지 + 태그
+// 1. 피드 생성 + 이미지 + 태그 + 명언 작성자
 // ----------------------
 router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
     const USER_ID = req.user.userId;
-    const { feedTitle, feedContents, tags } = req.body;
+    const { feedTitle, feedContents, tags, QUOTE_BACKGROUND } = req.body; // 🔥 QUOTE_BACKGROUND 추가
     const files = req.files || [];
 
     if (!feedTitle) { 
         return res.status(400).json({ msg: "제목은 필수 입력 항목입니다." });
     }
 
-    // tags 파싱 (클라이언트에서 JSON.stringify(tags)로 보냈다고 가정)
     const tagList = tags ? JSON.parse(tags) : []; // ["여행", "음식"]
 
     let connection;
@@ -32,8 +31,9 @@ router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
         await connection.beginTransaction(); 
 
         // 1) 피드 등록
-        let feedSql = "INSERT INTO PTB_FEED (USER_ID, FEED_TITLE, FEED_CONTENTS) VALUES(?, ?, ?)";
-        let [feedResult] = await connection.query(feedSql, [USER_ID, feedTitle, feedContents]);
+        // 🔥 QUOTE_BACKGROUND 컬럼 추가
+        let feedSql = "INSERT INTO PTB_FEED (USER_ID, FEED_TITLE, FEED_CONTENTS, QUOTE_BACKGROUND) VALUES(?, ?, ?, ?)";
+        let [feedResult] = await connection.query(feedSql, [USER_ID, feedTitle, feedContents, QUOTE_BACKGROUND || null]);
         const feedNo = feedResult.insertId;
 
         // 2) 이미지 등록
@@ -49,18 +49,15 @@ router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
         for (let tagName of tagList) {
             if (!tagName.trim()) continue;
 
-            // 태그 리스트 확인
             let [rows] = await connection.query("SELECT TAG_NO FROM PTB_TAG_LIST WHERE TAG_NAME = ?", [tagName]);
             let tagNo;
             if (rows.length > 0) {
                 tagNo = rows[0].TAG_NO;
             } else {
-                // 새 태그 추가
                 let [insertTag] = await connection.query("INSERT INTO PTB_TAG_LIST (TAG_NAME) VALUES (?)", [tagName]);
                 tagNo = insertTag.insertId;
             }
 
-            // 피드-태그 연결
             await connection.query("INSERT INTO PTB_FEED_TAG (FEED_NO, TAG_NO) VALUES (?, ?)", [feedNo, tagNo]);
         }
 
@@ -76,8 +73,9 @@ router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
     }
 });
 
+
 // ----------------------
-// 2. 피드 목록 조회 (이미지 + 태그 포함 검색)
+// 2. 피드 목록 조회 (이미지 + 태그 + 명언 작성자 포함)
 // ----------------------
 router.get("/list", async (req, res) => {
     const q = req.query.q ? `%${req.query.q}%` : '%';
@@ -89,6 +87,7 @@ router.get("/list", async (req, res) => {
                 F.USER_ID, 
                 F.FEED_TITLE,            
                 F.FEED_CONTENTS,         
+                F.QUOTE_BACKGROUND,       -- 🔥 명언 작성자 추가
                 F.CREATE_FEED_DATE AS CREATE_DATE, 
                 GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
                 GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
@@ -97,12 +96,12 @@ router.get("/list", async (req, res) => {
             LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
             LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
             LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
-            WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ? OR T.TAG_NAME LIKE ?)
-            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE
+            WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ? OR T.TAG_NAME LIKE ? OR F.QUOTE_BACKGROUND LIKE ?)
+            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.QUOTE_BACKGROUND, F.CREATE_FEED_DATE
             ORDER BY F.CREATE_FEED_DATE DESC
         `;
 
-        let [list] = await db.query(sql, [q, q, q]);
+        let [list] = await db.query(sql, [q, q, q, q]);
 
         const formattedList = list.map(feed => ({
             ...feed,
@@ -117,6 +116,7 @@ router.get("/list", async (req, res) => {
         res.status(500).json({ list: [], result: "fail", msg: "서버 오류 발생" });
     }
 });
+
 
 
 // ----------------------
@@ -163,7 +163,7 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
 });
 
 // ----------------------
-// 4. 사용자별 피드 조회
+// 4. 사용자별 피드 조회 (명언 작성자 포함)
 // ----------------------
 router.get("/:userId", async (req, res) => {
     let {userId} = req.params;
@@ -174,6 +174,7 @@ router.get("/:userId", async (req, res) => {
                 F.USER_ID, 
                 F.FEED_TITLE,         
                 F.FEED_CONTENTS,      
+                F.QUOTE_BACKGROUND,      -- 🔥 명언 작성자 추가
                 F.CREATE_FEED_DATE AS CREATE_DATE, 
                 GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
                 GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
@@ -182,11 +183,12 @@ router.get("/:userId", async (req, res) => {
             LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
             LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
             WHERE F.USER_ID = ? 
-            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE
+            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.QUOTE_BACKGROUND, F.CREATE_FEED_DATE
             ORDER BY F.CREATE_FEED_DATE DESC
         `;
 
         let [list] = await db.query(sql, [userId]);
+
         const formattedList = list.map(feed => ({
             ...feed,
             imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : [],
@@ -200,6 +202,7 @@ router.get("/:userId", async (req, res) => {
         res.status(500).json({ list: [], result: "fail", msg: "서버 오류" });
     }
 });
+
 
 // ----------------------
 // 5~7. 댓글 관련 API

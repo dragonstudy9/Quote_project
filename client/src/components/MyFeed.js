@@ -243,7 +243,7 @@ function MyFeed() {
                   “{feed.FEED_CONTENTS}”
                 </Typography>
                 <Typography variant="caption" display="block" color="text.disabled" sx={{ mt: 1 }}>
-                  {feed.USER_ID} · {new Date(feed.CREATE_DATE).toLocaleDateString()}
+                  {feed.QUOTE_BACKGROUND} · {new Date(feed.CREATE_DATE).toLocaleDateString()}
                 </Typography>
 
                 <Box mt={1}>
@@ -263,7 +263,6 @@ function MyFeed() {
       {/* 📌 상세 모달 */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>
-          <FormatQuoteIcon sx={{ verticalAlign: "middle", mr: 1 }} />
           {selectedFeed?.FEED_TITLE}
           <IconButton
             onClick={handleClose}
@@ -289,7 +288,8 @@ function MyFeed() {
           </Typography>
 
           <Typography variant="caption" color="text.secondary">
-            작성자: {selectedFeed?.USER_ID} ·{" "}
+            출처: {selectedFeed?.QUOTE_BACKGROUND} ·{" "}
+            피드 작성자: {selectedFeed?.USER_ID} ·{" "}
             {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
           </Typography>
 

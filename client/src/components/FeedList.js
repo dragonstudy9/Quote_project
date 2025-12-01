@@ -175,8 +175,11 @@ function FeedList() {
       }}
     >
       <Container maxWidth="lg">
-        
+
         {/* 검색창 */}
+        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
+          ✨ 전체 명언
+        </Typography>
         <Box
           sx={{
             mb: 4,
@@ -204,22 +207,20 @@ function FeedList() {
           <Button
             variant="contained"
             color="primary"
-            sx={{  
-                    borderRadius: 2,
-                    px: 3,        // 좌우 패딩만 설정
-                    py: 1.2,      // 상하 패딩 줄여서 정상 버튼 형태
-                    height: "auto",
-                    whiteSpace: "nowrap" 
-                }}
+            sx={{
+              borderRadius: 2,
+              px: 3,        // 좌우 패딩만 설정
+              py: 1.2,      // 상하 패딩 줄여서 정상 버튼 형태
+              height: "auto",
+              whiteSpace: "nowrap"
+            }}
             onClick={() => fnFeeds(searchTerm)}
           >
             검색
           </Button>
         </Box>
 
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-          ✨ 전체 명언
-        </Typography>
+        
 
         <Grid container spacing={4}>
           {feeds.map((feed) => (
@@ -251,20 +252,26 @@ function FeedList() {
                   </Typography>
 
                   <Typography variant="caption" sx={{ mt: 1, display: "block" }}>
-                    — {feed.USER_ID}
+                    — {feed.QUOTE_BACKGROUND}
                   </Typography>
 
                   <Box mt={1}>
                     {feed.tags.map((tag, idx) => (
-                      <Chip
+                      <Button
                         key={idx}
-                        label={`#${tag}`}
                         size="small"
-                        onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
-                        sx={{ mr: 0.5, mt: 0.5 }}
-                      />
+                        variant="outlined"
+                        sx={{ mr: 0.5, mb: 0.5 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTagClick(tag);  // 기존 Chip에서 사용하던 클릭 이벤트 사용
+                        }}
+                      >
+                        #{tag}
+                      </Button>
                     ))}
                   </Box>
+
                 </CardContent>
               </Card>
             </Grid>
@@ -274,7 +281,6 @@ function FeedList() {
         {/* 상세 모달 */}
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
           <DialogTitle>
-            <FormatQuoteIcon sx={{ verticalAlign: "middle", mr: 1 }} />
             {selectedFeed?.FEED_TITLE}
             <IconButton onClick={handleClose} sx={{ position: 'absolute', right: 8, top: 8 }}>
               <CloseIcon />
@@ -287,7 +293,7 @@ function FeedList() {
             </Typography>
 
             <Typography variant="caption" color="text.secondary">
-              작성자: {selectedFeed?.USER_ID} | 작성일: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
+              출처: {selectedFeed?.QUOTE_BACKGROUND} | 피드 작성자: {selectedFeed?.USER_ID} | 작성일: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
             </Typography>
 
             {/* 태그 관리 */}

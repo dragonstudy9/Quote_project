@@ -1,5 +1,3 @@
-// Register.js — 태그 입력(텍스트), 제한 없음, 선택 옵션 추가 적용
-
 import React, { useRef, useState } from 'react';
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from 'react-router-dom';
@@ -16,10 +14,12 @@ import { PhotoCamera } from '@mui/icons-material';
 
 function Register() {
   const [files, setFiles] = useState([]);
-  const [tags, setTags] = useState(""); // 🔥 "여행, 음식" 형태로 입력
+  const [tags, setTags] = useState(""); // "여행, 음식" 형태
 
   const titleRef = useRef();
   const contentRef = useRef();
+  const quoteBackgroundRef = useRef(); // 🔥 명언 작성자 ref
+
   const navigate = useNavigate();
 
   const handleFileChange = (event) => {
@@ -44,12 +44,18 @@ function Register() {
     formData.append('feedTitle', titleRef.current.value);
     formData.append('feedContents', contentRef.current.value);
 
-    if (tags.trim().length > 0) {
-        // 쉼표로 분리하고 양쪽 공백 제거
-        const tagArray = tags.split(',').map(t => t.trim()).filter(t => t !== "");
-        formData.append('tags', JSON.stringify(tagArray)); // 서버에서 JSON.parse(tags) 사용
+    // 🔥 명언 작성자 추가
+    if (quoteBackgroundRef.current?.value.trim().length > 0) {
+      formData.append('QUOTE_BACKGROUND', quoteBackgroundRef.current.value.trim());
     }
 
+    // 🔥 태그 추가
+    if (tags.trim().length > 0) {
+      const tagArray = tags.split(',').map(t => t.trim()).filter(t => t !== "");
+      formData.append('tags', JSON.stringify(tagArray));
+    }
+
+    // 🔥 이미지 파일 추가
     Array.from(files).forEach((file) => {
       formData.append('files', file);
     });
@@ -80,7 +86,6 @@ function Register() {
   return (
     <Container maxWidth="sm">
       <Box display="flex" flexDirection="column" alignItems="center" padding={3}>
-
         <Typography variant="h4" gutterBottom>피드 등록</Typography>
 
         <TextField inputRef={titleRef} label="제목" fullWidth margin="normal" />
@@ -94,7 +99,15 @@ function Register() {
           rows={4}
         />
 
-        {/* 🔥 태그 입력 (선택) */}
+        {/* 🔥 명언 작성자 */}
+        <TextField
+          inputRef={quoteBackgroundRef}
+          label="명언 작성자"
+          fullWidth
+          margin="normal"
+        />
+
+        {/* 🔥 태그 입력 */}
         <TextField
           label="태그 (쉼표로 구분) 예: 여행, 음식, 바다"
           value={tags}
@@ -103,7 +116,7 @@ function Register() {
           margin="normal"
         />
 
-        {/* 파일 업로드 */}
+        {/* 🔥 파일 업로드 */}
         <Box display="flex" alignItems="center" margin="normal" fullWidth>
           <input
             accept="image/*"

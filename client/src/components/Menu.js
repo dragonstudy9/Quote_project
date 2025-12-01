@@ -11,6 +11,8 @@ function Menu() {
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const [userStatus, setUserStatus] = useState(null); 
 
+  const [quote, setQuote] = useState({ text: '', author: '' }); // 🔥 랜덤 명언 상태
+
   // 현재 로그인한 사용자 상태 가져오기
   const getCurrentUserStatus = () => {
     const token = localStorage.getItem("token");
@@ -38,8 +40,29 @@ function Menu() {
     navigate("/"); 
   };
 
+  // 🔥 랜덤 명언 가져오기
+  const fetchRandomQuote = async () => {
+    try {
+      const res = await fetch("http://localhost:3010/feed/list");
+      const data = await res.json();
+      if (data.result === "success" && data.list.length > 0) {
+        const feedsWithQuote = data.list.filter(f => f.QUOTE_BACKGROUND && f.QUOTE_BACKGROUND.trim() !== "");
+        if (feedsWithQuote.length > 0) {
+          const randomFeed = feedsWithQuote[Math.floor(Math.random() * feedsWithQuote.length)];
+          setQuote({ 
+            author: randomFeed.QUOTE_BACKGROUND, 
+            text: randomFeed.FEED_CONTENTS || '알 수 없음' 
+          });
+        }
+      }
+    } catch (err) {
+      console.error("랜덤 명언 불러오기 실패:", err);
+    }
+  };
+
   useEffect(() => {
     setUserStatus(getCurrentUserStatus());
+    fetchRandomQuote(); // 컴포넌트 마운트 시 랜덤 명언 가져오기
   }, []);
 
   return (
@@ -59,21 +82,22 @@ function Menu() {
     >
       <Toolbar />
 
-      {/* 🔥 사이드바 상단 명언 영역 */}
-      <Box sx={{ p: 2, textAlign: "center", color: "#e0e0e0" }}>
+      {/* 🔥 랜덤 명언 영역 */}
+      <Box sx={{ p: 6, textAlign: "center", color: "#e0e0e0" }}>
         <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
           오늘의 명언
         </Typography>
         <Typography variant="body2" sx={{ fontStyle: "italic", opacity: 0.9 }}>
-          “성공은 작은 노력이 반복된 결과이다.”
+          {quote.text ? `“${quote.text}”` : "명언을 불러오는 중..."}
         </Typography>
-        <Typography variant="caption" sx={{ display: "block", mt: 1, opacity: 0.7 }}>
-          - 로버트 콜리어
-        </Typography>
+        {quote.text && (
+          <Typography variant="caption" sx={{ display: "block", mt: 1, opacity: 0.7 }}>
+            - {quote.author}
+          </Typography>
+        )}
       </Box>
 
       <List>
-
         {/* 전체 피드 */}
         {userStatus === 'A' ? (
           <ListItem
@@ -147,7 +171,6 @@ function Menu() {
             <ListItemText primary="로그아웃" />
           </ListItem>
         )}
-
       </List>
     </Drawer>
   );
