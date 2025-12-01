@@ -3,9 +3,10 @@ import {
   Grid, Container, Box, Card, CardMedia, CardContent,
   Typography, Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Button, TextField, List, ListItem, ListItemText,
-  ListItemAvatar, Avatar, InputAdornment
+  ListItemAvatar, Avatar, InputAdornment, Divider
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 
@@ -14,6 +15,7 @@ function MyFeed() {
   const [selectedFeed, setSelectedFeed] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [newTag, setNewTag] = useState('');
   const [feeds, setFeeds] = useState([]);
   const [searchText, setSearchText] = useState("");
   const navigate = useNavigate();
@@ -21,20 +23,13 @@ function MyFeed() {
   const getCurrentUserId = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
-    try {
-      return jwtDecode(token).userId;
-    } catch {
-      return null;
-    }
+    try { return jwtDecode(token).userId; } 
+    catch { return null; }
   };
 
   const fnFeeds = () => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      alert("로그인 후 이용해 주세요!");
-      navigate("/");
-      return;
-    }
+    if (!token) { alert("로그인 후 이용해 주세요!"); navigate("/"); return; }
 
     const decoded = jwtDecode(token);
 
@@ -60,7 +55,11 @@ function MyFeed() {
     fnLoadComments(feed.id);
   };
 
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedFeed(null);
+    setNewTag('');
+  };
 
   const fnLoadComments = (feedNo) => {
     fetch(`http://localhost:3010/feed/comments/${feedNo}`)
@@ -100,12 +99,8 @@ function MyFeed() {
       headers: { "Authorization": `Bearer ${token}` }
     });
     const result = await response.json();
-    if (response.ok) {
-      alert(result.msg);
-      fnLoadComments(selectedFeed.id);
-    } else {
-      alert(result.msg);
-    }
+    if (response.ok) { alert(result.msg); fnLoadComments(selectedFeed.id); } 
+    else { alert(result.msg); }
   };
 
   const handleDeleteFeed = () => {
@@ -124,10 +119,8 @@ function MyFeed() {
       .catch(error => console.error("삭제 에러:", error));
   };
 
-  // 🔥 태그 삭제 함수
   const handleDeleteTag = async (feedId, tag) => {
     if (!window.confirm(`정말로 태그 "${tag}"를 삭제하시겠습니까?`)) return;
-
     try {
       const response = await fetch(`http://localhost:3010/feed/tag/${feedId}/${encodeURIComponent(tag)}`, {
         method: "DELETE",
@@ -138,9 +131,7 @@ function MyFeed() {
         alert(data.msg);
         setFeeds(prevFeeds =>
           prevFeeds.map(feed =>
-            feed.id === feedId
-              ? { ...feed, tags: feed.tags.filter(t => t !== tag) }
-              : feed
+            feed.id === feedId ? { ...feed, tags: feed.tags.filter(t => t !== tag) } : feed
           )
         );
         if (selectedFeed && selectedFeed.id === feedId) {
@@ -155,56 +146,110 @@ function MyFeed() {
     }
   };
 
-  // 🔥 검색 시 제목, 내용, 태그 포함
+  const handleAddTag = async () => {
+    if (!newTag.trim() || !selectedFeed) return;
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:3010/feed/tag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ feedId: selectedFeed.id, tagName: newTag.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.msg);
+        setSelectedFeed(prev => ({ ...prev, tags: [...prev.tags, newTag.trim()] }));
+        setFeeds(prevFeeds => prevFeeds.map(feed =>
+          feed.id === selectedFeed.id ? { ...feed, tags: [...feed.tags, newTag.trim()] } : feed
+        ));
+        setNewTag('');
+      } else {
+        alert(data.msg || "태그 추가 실패");
+      }
+    } catch (error) {
+      console.error("태그 추가 오류:", error);
+      alert("태그 추가 중 오류가 발생했습니다.");
+    }
+  };
+
   const filteredFeeds = feeds.filter(feed => {
     const keyword = searchText.toLowerCase();
     return (
-      (feed.FEED_TITLE && feed.FEED_TITLE.toLowerCase().includes(keyword)) ||
-      (feed.FEED_CONTENTS && feed.FEED_CONTENTS.toLowerCase().includes(keyword)) ||
-      (feed.tags && feed.tags.some(tag => tag.toLowerCase().includes(keyword)))
+      (feed.FEED_TITLE?.toLowerCase().includes(keyword)) ||
+      (feed.FEED_CONTENTS?.toLowerCase().includes(keyword)) ||
+      (feed.tags?.some(tag => tag.toLowerCase().includes(keyword)))
     );
   });
 
   return (
-    <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+    <Container maxWidth="lg" sx={{ marginTop: 4 }}>
+      
+      {/* 🔥 헤더 + 라인 */}
+      <Typography variant="h4" fontWeight={700} mb={1}>
+        👤 내 명언 목록
+      </Typography>
+      <Divider sx={{ mb: 3 }} />
+
       {/* 검색창 */}
-      <Box display="flex" gap={2} mb={3}>
+      <Box display="flex" gap={2} mb={4}>
         <TextField
           fullWidth
           variant="outlined"
           placeholder="검색어를 입력하세요..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') setSearchText(searchText); }}
           InputProps={{ startAdornment: <InputAdornment position="start">🔍</InputAdornment> }}
         />
-        <Button variant="contained" color="primary" onClick={() => setSearchText(searchText)}>검색</Button>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => setSearchText(searchText)}
+          sx={{
+            borderRadius: 2,
+            px: 3,        // 좌우 패딩
+            py: 1.2,      // 상하 패딩 줄여서 높이 안정화
+            whiteSpace: "nowrap",  // 텍스트 줄바꿈 방지
+            height: "auto"
+          }}
+        >
+          검색
+        </Button>
+
       </Box>
 
-      <Typography variant="h5" mb={2}>👤 내 명언 목록</Typography>
-
+      {/* 📌 피드 목록 */}
       <Grid container spacing={4}>
         {filteredFeeds.map(feed => (
           <Grid item key={feed.id} xs={12} sm={6} md={4} lg={3}>
-            <Card style={{ cursor: 'pointer' }} onClick={() => handleClickOpen(feed)}>
-              {feed.imgPath && <CardMedia component="img" height="140" image={feed.imgPath} />}
+            <Card
+              onClick={() => handleClickOpen(feed)}
+              sx={{
+                cursor: "pointer",
+                borderRadius: 3,
+                boxShadow: 3,
+                transition: "0.3s",
+                "&:hover": { boxShadow: 6, transform: "translateY(-4px)" }
+              }}
+            >
+              {feed.imgPath && (
+                <CardMedia component="img" height="160" image={feed.imgPath} />
+              )}
               <CardContent>
-                <Typography variant="h6">{feed.FEED_TITLE}</Typography>
-                <Typography variant="body2" color="text.secondary">{feed.FEED_CONTENTS}</Typography>
-                <Typography variant="caption" display="block" color="text.disabled">
-                  {feed.USER_ID} - {new Date(feed.CREATE_DATE).toLocaleDateString()}
+                <FormatQuoteIcon sx={{ fontSize: 36, color: "#555" }} />
+                <Typography variant="h6" fontWeight={600}>
+                  {feed.FEED_TITLE}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>
+                  “{feed.FEED_CONTENTS}”
+                </Typography>
+                <Typography variant="caption" display="block" color="text.disabled" sx={{ mt: 1 }}>
+                  {feed.USER_ID} · {new Date(feed.CREATE_DATE).toLocaleDateString()}
                 </Typography>
 
-                {/* 🔥 카드에서는 태그 X 버튼 제거 */}
                 <Box mt={1}>
                   {feed.tags.map((tag, idx) => (
-                    <Button
-                      key={idx}
-                      size="small"
-                      variant="outlined"
-                      sx={{ mr: 0.5, mb: 0.5 }}
-                      onClick={() => setSearchText(tag)}
-                    >
+                    <Button key={idx} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }}
+                      onClick={(e) => { e.stopPropagation(); setSearchText(tag); }}>
                       #{tag}
                     </Button>
                   ))}
@@ -215,27 +260,59 @@ function MyFeed() {
         ))}
       </Grid>
 
-      {/* 상세 모달 */}
+      {/* 📌 상세 모달 */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          <FormatQuoteIcon sx={{ verticalAlign: "middle", mr: 1 }} />
           {selectedFeed?.FEED_TITLE}
-          <IconButton onClick={handleClose} style={{ position: 'absolute', right: 8, top: 8 }}>
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
 
         <DialogContent dividers>
-          {selectedFeed?.imgPath && <Box mb={2}><img src={selectedFeed.imgPath} alt="Selected Feed" style={{ width: '100%', borderRadius: '4px' }} /></Box>}
-          <Typography variant="body1" paragraph>{selectedFeed?.FEED_CONTENTS}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            작성자: {selectedFeed?.USER_ID} | 날짜: {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
+          {selectedFeed?.imgPath && (
+            <Box mb={2}>
+              <img
+                src={selectedFeed.imgPath}
+                alt="Feed"
+                style={{ width: "100%", borderRadius: "6px" }}
+              />
+            </Box>
+          )}
+
+          <Typography variant="body1" paragraph>
+            “{selectedFeed?.FEED_CONTENTS}”
           </Typography>
 
-          {/* 🔥 모달에서는 작성자만 태그 X 버튼 표시 */}
-          <Box mt={1} mb={2}>
+          <Typography variant="caption" color="text.secondary">
+            작성자: {selectedFeed?.USER_ID} ·{" "}
+            {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
+          </Typography>
+
+          {/* 태그 추가 */}
+          <Box mt={3} mb={2}>
+            {selectedFeed?.USER_ID === getCurrentUserId() && (
+              <Box display="flex" gap={1} mb={2}>
+                <TextField
+                  size="small"
+                  placeholder="태그 추가"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { handleAddTag(); e.preventDefault(); } }}
+                />
+                <Button variant="contained" size="small" onClick={handleAddTag}>
+                  추가
+                </Button>
+              </Box>
+            )}
+
             {selectedFeed?.tags.map((tag, idx) => (
-              <Box key={idx} display="inline-flex" alignItems="center" sx={{ mr: 0.5, mb: 0.5 }}>
-                <Button size="small" variant="outlined" onClick={() => setSearchText(tag)}>
+              <Box key={idx} display="inline-flex" alignItems="center" sx={{ mr: 1, mb: 1 }}>
+                <Button size="small" variant="outlined">
                   #{tag}
                 </Button>
                 {selectedFeed.USER_ID === getCurrentUserId() && (
@@ -247,39 +324,47 @@ function MyFeed() {
             ))}
           </Box>
 
-          {/* 댓글 영역 */}
-          <Box mt={3}>
-            <Typography variant="h6">댓글</Typography>
-            <List>
-              {comments.map(comment => (
-                <ListItem key={comment.id} disablePadding>
-                  <ListItemAvatar><Avatar>{comment.user.charAt(0)}</Avatar></ListItemAvatar>
-                  <ListItemText primary={comment.text} secondary={comment.user} />
-                  {getCurrentUserId() === comment.user && (
-                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteComment(comment.id)} size="small" sx={{ ml: 1 }}>
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </ListItem>
-              ))}
-            </List>
+          {/* 🔥 댓글 */}
+          <Divider sx={{ my: 2 }} />
 
-            <TextField
-              fullWidth
-              label="댓글 추가"
-              variant="outlined"
-              size="small"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { handleAddComment(); e.preventDefault(); } }}
-            />
-            <Button variant="contained" color="primary" onClick={handleAddComment} sx={{ marginTop: 1 }}>댓글 추가</Button>
-          </Box>
+          <Typography variant="h6" fontWeight={600}>
+            댓글
+          </Typography>
+
+          <List>
+            {comments.map(comment => (
+              <ListItem key={comment.id} disablePadding sx={{ mb: 1 }}>
+                <ListItemAvatar>
+                  <Avatar>{comment.user.charAt(0)}</Avatar>
+                </ListItemAvatar>
+                <ListItemText primary={comment.text} secondary={comment.user} />
+
+                {getCurrentUserId() === comment.user && (
+                  <IconButton edge="end" onClick={() => handleDeleteComment(comment.id)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </ListItem>
+            ))}
+          </List>
+
+          <TextField
+            fullWidth
+            label="댓글 추가"
+            size="small"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { handleAddComment(); e.preventDefault(); } }}
+          />
+          <Button variant="contained" sx={{ mt: 1 }} onClick={handleAddComment}>
+            댓글 추가
+          </Button>
+
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={handleDeleteFeed} color="primary">삭제</Button>
-          <Button onClick={handleClose} color="primary">닫기</Button>
+          <Button color="error" onClick={handleDeleteFeed}>삭제</Button>
+          <Button onClick={handleClose}>닫기</Button>
         </DialogActions>
       </Dialog>
     </Container>

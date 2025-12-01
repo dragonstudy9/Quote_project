@@ -335,7 +335,66 @@ router.delete('/tag/:feedId/:tagName', authMiddleware, async (req, res) => {
     } finally {
         if (connection) connection.release();
     }
+}); 
+
+// ----------------------
+// 9. 피드 태그 추가
+// ----------------------
+router.post('/tag', authMiddleware, async (req, res) => {
+    const { feedId, tagName } = req.body;
+    const currentUserId = req.user.userId;
+
+    if (!feedId || !tagName || !tagName.trim()) return res.status(400).json({ msg: "피드 ID와 태그명을 입력해주세요." });
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // 1) 피드 존재 여부 확인
+        const [feedRows] = await connection.query("SELECT USER_ID FROM PTB_FEED WHERE FEED_NO = ?", [feedId]);
+        if (feedRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ msg: "해당 피드가 존재하지 않습니다." });
+        }
+
+        const feedOwnerId = feedRows[0].USER_ID;
+        if (currentUserId !== feedOwnerId) {
+            await connection.rollback();
+            return res.status(403).json({ msg: "❌ 태그 추가 권한이 없습니다." });
+        }
+
+        // 2) 태그 존재 여부 확인 후 없으면 추가
+        let [tagRows] = await connection.query("SELECT TAG_NO FROM PTB_TAG_LIST WHERE TAG_NAME = ?", [tagName]);
+        let tagNo;
+        if (tagRows.length === 0) {
+            const [insertTag] = await connection.query("INSERT INTO PTB_TAG_LIST (TAG_NAME) VALUES (?)", [tagName]);
+            tagNo = insertTag.insertId;
+        } else {
+            tagNo = tagRows[0].TAG_NO;
+        }
+
+        // 3) 피드-태그 연결 확인 후 추가
+        const [exists] = await connection.query("SELECT * FROM PTB_FEED_TAG WHERE FEED_NO = ? AND TAG_NO = ?", [feedId, tagNo]);
+        if (exists.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ msg: "이미 존재하는 태그입니다." });
+        }
+
+        await connection.query("INSERT INTO PTB_FEED_TAG (FEED_NO, TAG_NO) VALUES (?, ?)", [feedId, tagNo]);
+
+        await connection.commit();
+        res.json({ result: "success", msg: `태그 '${tagName}'가 추가되었습니다.` });
+
+    } catch (err) {
+        if (connection) await connection.rollback();
+        console.error("태그 추가 오류:", err);
+        res.status(500).json({ msg: "서버 오류로 태그 추가에 실패했습니다." });
+    } finally {
+        if (connection) connection.release();
+    }
 });
+
 
 
 module.exports = router;
