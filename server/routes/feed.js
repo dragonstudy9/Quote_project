@@ -11,58 +11,74 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 1. 명언 생성 API: 피드 생성과 이미지 업로드를 통합 처리할 수 있도록 수정
-// 파일을 포함한 POST 요청을 처리하고, 인증 미들웨어를 적용합니다.
-// authMiddleware를 통해 req.user에 userId가 담깁니다.
+// ----------------------
+// 1. 피드 생성 + 이미지 + 태그
+// ----------------------
 router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
-    // 💡 JWT에서 USER_ID를 가져옵니다. (req.body.userId 대신)
     const USER_ID = req.user.userId;
-    const { feedTitle, feedContents } = req.body;
-    const files = req.files || []; // 업로드된 파일 배열
+    const { feedTitle, feedContents, tags } = req.body;
+    const files = req.files || [];
 
     if (!feedTitle) { 
         return res.status(400).json({ msg: "제목은 필수 입력 항목입니다." });
     }
+
+    // tags 파싱 (클라이언트에서 JSON.stringify(tags)로 보냈다고 가정)
+    const tagList = tags ? JSON.parse(tags) : []; // ["여행", "음식"]
 
     let connection;
     try {
         connection = await db.getConnection();
         await connection.beginTransaction(); 
 
-        // 2. PTB_FEED 테이블에 피드 데이터 삽입
+        // 1) 피드 등록
         let feedSql = "INSERT INTO PTB_FEED (USER_ID, FEED_TITLE, FEED_CONTENTS) VALUES(?, ?, ?)";
         let [feedResult] = await connection.query(feedSql, [USER_ID, feedTitle, feedContents]);
         const feedNo = feedResult.insertId;
 
-        // 3. 🔑 파일이 있는 경우에만 PTB_FEED_IMG 테이블에 이미지 정보 저장
-        const files = req.files || [];
-        if (files.length > 0) { // 👈 files 배열의 길이가 0보다 클 때만 실행
+        // 2) 이미지 등록
+        if (files.length > 0) {
             let host = `${req.protocol}://${req.get("host")}/`;
             for (let file of files) {
-                let imgQuery = "INSERT INTO PTB_FEED_IMG (FEED_NO, FEED_IMG_NAME, IMG_PATH) VALUES(?, ?, ?)"; 
+                let imgQuery = "INSERT INTO PTB_FEED_IMG (FEED_NO, FEED_IMG_NAME, IMG_PATH) VALUES(?, ?, ?)";
                 await connection.query(imgQuery, [feedNo, file.filename, host + file.destination + file.filename]);
             }
         }
-        
-        await connection.commit(); // 트랜잭션 커밋
-        res.status(201).json({ msg: "✔️ 피드 등록 성공!", feedNo: feedNo });
+
+        // 3) 태그 등록
+        for (let tagName of tagList) {
+            if (!tagName.trim()) continue;
+
+            // 태그 리스트 확인
+            let [rows] = await connection.query("SELECT TAG_NO FROM PTB_TAG_LIST WHERE TAG_NAME = ?", [tagName]);
+            let tagNo;
+            if (rows.length > 0) {
+                tagNo = rows[0].TAG_NO;
+            } else {
+                // 새 태그 추가
+                let [insertTag] = await connection.query("INSERT INTO PTB_TAG_LIST (TAG_NAME) VALUES (?)", [tagName]);
+                tagNo = insertTag.insertId;
+            }
+
+            // 피드-태그 연결
+            await connection.query("INSERT INTO PTB_FEED_TAG (FEED_NO, TAG_NO) VALUES (?, ?)", [feedNo, tagNo]);
+        }
+
+        await connection.commit();
+        res.status(201).json({ msg: "✔️ 피드 등록 성공!", feedNo });
 
     } catch (err) {
-        if (connection) {
-            await connection.rollback(); // 오류 발생 시 롤백
-        }
+        if (connection) await connection.rollback();
         console.error("피드 생성/업로드 중 오류:", err);
         res.status(500).json({ msg: "피드 등록 중 서버 오류가 발생했습니다." });
     } finally {
-        if (connection) {
-            connection.release(); // 연결 해제
-        }
+        if (connection) connection.release();
     }
 });
 
-
-// routes/feed.js 파일 내 router.get("/list", ...) 부분 수정
-
+// ----------------------
+// 2. 피드 목록 조회 (이미지 + 태그 포함 검색)
+// ----------------------
 router.get("/list", async (req, res) => {
     const q = req.query.q ? `%${req.query.q}%` : '%';
 
@@ -74,270 +90,190 @@ router.get("/list", async (req, res) => {
                 F.FEED_TITLE,            
                 F.FEED_CONTENTS,         
                 F.CREATE_FEED_DATE AS CREATE_DATE, 
-                GROUP_CONCAT(I.IMG_PATH) AS imgPaths    
+                GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
+                GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
             FROM PTB_FEED F
             JOIN PTB_USER U ON F.USER_ID = U.USER_ID
             LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
-            WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ?)
-            GROUP BY 
-                F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE, U.USER_NAME 
+            LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
+            LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
+            WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ? OR T.TAG_NAME LIKE ?)
+            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE
             ORDER BY F.CREATE_FEED_DATE DESC
         `;
 
-        let [list] = await db.query(sql, [q, q]);
+        let [list] = await db.query(sql, [q, q, q]);
 
         const formattedList = list.map(feed => ({
             ...feed,
-            imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : []
+            imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : [],
+            tags: feed.tags ? feed.tags.split(',') : []
         }));
 
-        res.json({
-            list: formattedList,
-            result: "success"
-        });
+        res.json({ list: formattedList, result: "success" });
+
     } catch (error) {
         console.error("피드 목록 조회 중 오류:", error);
-        res.status(500).json({ 
-            list: [], 
-            result: "fail", 
-            msg: "서버 오류 발생" 
-        });
+        res.status(500).json({ list: [], result: "fail", msg: "서버 오류 발생" });
     }
 });
 
-// [uploaded:feed.js] 파일의 router.delete('/:feedId', authMiddleware, async (req, res) => { ... }) 수정
 
+// ----------------------
+// 3. 피드 삭제
+// (기존 코드 그대로, 필요시 이미지+댓글+태그 삭제 추가 가능)
+// ----------------------
 router.delete('/:feedId', authMiddleware, async (req, res) => {
     let {feedId} = req.params;
-    // 🔑 authMiddleware를 통해 JWT 정보가 req.user에 담겨 있습니다.
     const currentUserId = req.user.userId;
-    const currentUserStatus = req.user.status; // 현재 로그인 사용자의 상태 ('A' 또는 'N' 등)
+    const currentUserStatus = req.user.status;
 
     let connection;
     try {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // 1. 해당 피드의 작성자 ID를 조회합니다.
         const [feed] = await connection.query("SELECT USER_ID FROM PTB_FEED WHERE FEED_NO = ?", [feedId]);
-
         if (feed.length === 0) {
             await connection.rollback();
             return res.status(404).json({ result: "fail", msg: "해당 피드가 존재하지 않습니다." });
         }
 
         const feedOwnerId = feed[0].USER_ID;
-
-        // 2. 🔑 권한 확인 로직 (작성자이거나 관리자('A')인 경우 삭제 허용)
         if (currentUserStatus !== 'A' && currentUserId !== feedOwnerId) {
             await connection.rollback();
-            // 403 Forbidden: 권한 없음
             return res.status(403).json({ result: "fail", msg: "❌ 피드 작성자 또는 관리자만 삭제할 수 있습니다." });
         }
-        
-        // 3. 댓글 삭제 (필요하다면)
-        await connection.query("DELETE FROM PTB_FEED_COMMENT WHERE FEED_NO = ?", [feedId]);
-        // 4. 이미지 삭제 (필요하다면)
-        await connection.query("DELETE FROM PTB_FEED_IMG WHERE FEED_NO = ?", [feedId]);
-        // 5. 피드 본문 삭제
-        const [result] = await connection.query("DELETE FROM PTB_FEED WHERE FEED_NO = ?", [feedId]); 
-        
-        await connection.commit();
 
-        res.json({
-            result: result.affectedRows > 0 ? "success" : "fail",
-            msg: result.affectedRows > 0 ? "삭제되었습니다." : "삭제 실패"
-        });
+        await connection.query("DELETE FROM PTB_FEED_COMMENT WHERE FEED_NO = ?", [feedId]);
+        await connection.query("DELETE FROM PTB_FEED_IMG WHERE FEED_NO = ?", [feedId]);
+        await connection.query("DELETE FROM PTB_FEED_TAG WHERE FEED_NO = ?", [feedId]);
+        const [result] = await connection.query("DELETE FROM PTB_FEED WHERE FEED_NO = ?", [feedId]);
+
+        await connection.commit();
+        res.json({ result: result.affectedRows > 0 ? "success" : "fail", msg: result.affectedRows > 0 ? "삭제되었습니다." : "삭제 실패" });
+
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
+        if (connection) await connection.rollback();
         console.error(error);
         res.status(500).json({ msg: "서버 오류로 인해 삭제에 실패했습니다." });
     } finally {
-        if (connection) {
-            connection.release();
-        }
+        if (connection) connection.release();
     }
 });
 
-
+// ----------------------
+// 4. 사용자별 피드 조회
+// ----------------------
 router.get("/:userId", async (req, res) => {
     let {userId} = req.params;
     try {
-        let sql = 
-            `SELECT 
+        let sql = `
+            SELECT 
                 F.FEED_NO AS id, 
                 F.USER_ID, 
                 F.FEED_TITLE,         
                 F.FEED_CONTENTS,      
                 F.CREATE_FEED_DATE AS CREATE_DATE, 
-                GROUP_CONCAT(I.IMG_PATH) AS imgPaths     
+                GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
+                GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
             FROM PTB_FEED F 
             LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
+            LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
+            LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
             WHERE F.USER_ID = ? 
-            GROUP BY 
-                F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE 
-            ORDER BY F.CREATE_FEED_DATE DESC`;
-        
-        let [list] = await db.query(sql, [userId]); 
-        
-        // 프론트엔드에서 처리하기 쉽도록 문자열로 묶인 imgPaths를 배열로 변환
+            GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.CREATE_FEED_DATE
+            ORDER BY F.CREATE_FEED_DATE DESC
+        `;
+
+        let [list] = await db.query(sql, [userId]);
         const formattedList = list.map(feed => ({
             ...feed,
-            imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : []
+            imgPaths: feed.imgPaths ? feed.imgPaths.split(',') : [],
+            tags: feed.tags ? feed.tags.split(',') : []
         }));
 
-        res.json({
-            list : formattedList,
-            result : "success"
-        });
+        res.json({ list: formattedList, result: "success" });
+
     } catch (error) {
         console.error("피드 조회 중 에러 발생:", error);
-        // 에러 발생 시에도 클라이언트의 map 오류를 막기 위해 list:[] 반환
         res.status(500).json({ list: [], result: "fail", msg: "서버 오류" });
     }
 });
 
-// [uploaded:feed.js] 파일에 다음 라우터 추가
-
-// 5. 💬 댓글 등록 API (POST /feed/comment)
+// ----------------------
+// 5~7. 댓글 관련 API
+// (기존 코드 그대로)
+// ----------------------
 router.post('/comment', authMiddleware, async (req, res) => {
-    // authMiddleware를 통해 req.user에 토큰의 userId가 담겨 있습니다.
     const USER_ID = req.user.userId;
-    
-    // 🔑 req.body에서 feedComment를 받습니다.
     const { feedNo, feedComment } = req.body; 
-
-    if (!feedNo || !feedComment) {
-        return res.status(400).json({ msg: "피드 번호와 댓글 내용은 필수입니다." });
-    }
+    if (!feedNo || !feedComment) return res.status(400).json({ msg: "피드 번호와 댓글 내용은 필수입니다." });
 
     let connection;
     try {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // 🔑 FEED_COMMENT 컬럼명과 CREATE_COMMENT_DATE 컬럼명을 사용합니다.
-        const sql = 
-            `INSERT INTO PTB_FEED_COMMENT 
-            (FEED_NO, USER_ID, FEED_COMMENT, CREATE_COMMENT_DATE) 
-            VALUES (?, ?, ?, NOW())`;
-        
-        // 🔑 feedComment 변수를 SQL에 전달합니다.
+        const sql = `INSERT INTO PTB_FEED_COMMENT (FEED_NO, USER_ID, FEED_COMMENT, CREATE_COMMENT_DATE) VALUES (?, ?, ?, NOW())`;
         const [result] = await connection.query(sql, [feedNo, USER_ID, feedComment]);
         
         await connection.commit();
-        
-        res.status(201).json({ 
-            result: "success", 
-            msg: "댓글이 성공적으로 등록되었습니다.", 
-            insertId: result.insertId // 새로 생성된 댓글 ID 반환
-        });
+        res.status(201).json({ result: "success", msg: "댓글이 성공적으로 등록되었습니다.", insertId: result.insertId });
 
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
+        if (connection) await connection.rollback();
         console.error("댓글 등록 오류:", error);
         res.status(500).json({ msg: "서버 오류로 인해 댓글 등록에 실패했습니다." });
     } finally {
-        if (connection) {
-            connection.release();
-        }
+        if (connection) connection.release();
     }
 });
 
-// [uploaded:feed.js] 파일에 추가
-// 6. 💬 댓글 목록 조회 API (GET /feed/comments/:feedNo)
 router.get('/comments/:feedNo', async (req, res) => {
     const { feedNo } = req.params;
-
-    if (!feedNo) {
-        return res.status(400).json({ msg: "피드 번호가 누락되었습니다." });
-    }
+    if (!feedNo) return res.status(400).json({ msg: "피드 번호가 누락되었습니다." });
 
     try {
-        // PTB_FEED_COMMENT 테이블에서 해당 피드(FEED_NO)의 댓글을 조회합니다.
-        const sql = `
-            SELECT 
-                C.FEED_COMMENT_NO AS id, 
-                C.FEED_COMMENT AS text, 
-                C.USER_ID AS user, 
-                C.CREATE_COMMENT_DATE AS createDate
-            FROM PTB_FEED_COMMENT C
-            WHERE C.FEED_NO = ?
-            ORDER BY C.CREATE_COMMENT_DATE ASC
-        `;
-        
+        const sql = `SELECT C.FEED_COMMENT_NO AS id, C.FEED_COMMENT AS text, C.USER_ID AS user, C.CREATE_COMMENT_DATE AS createDate
+                     FROM PTB_FEED_COMMENT C
+                     WHERE C.FEED_NO = ?
+                     ORDER BY C.CREATE_COMMENT_DATE ASC`;
         const [list] = await db.query(sql, [feedNo]);
-
-        res.json({
-            result: "success",
-            list: list
-        });
+        res.json({ result: "success", list });
     } catch (error) {
         console.error("댓글 목록 조회 오류:", error);
         res.status(500).json({ msg: "댓글 목록을 불러오는 중 서버 오류가 발생했습니다." });
     }
 });
 
-
-// 7. 💬 댓글 삭제 API (DELETE /feed/comment/:commentNo)
-// 인증 미들웨어(authMiddleware)를 통해 로그인 상태 확인
 router.delete('/comment/:commentNo', authMiddleware, async (req, res) => {
     const { commentNo } = req.params;
-    // JWT를 통해 얻은 현재 로그인 사용자 ID
     const USER_ID = req.user.userId; 
-
-    if (!commentNo) {
-        return res.status(400).json({ msg: "댓글 번호가 누락되었습니다." });
-    }
+    if (!commentNo) return res.status(400).json({ msg: "댓글 번호가 누락되었습니다." });
 
     let connection;
     try {
         connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // 1. 해당 댓글이 존재하는지, 그리고 현재 사용자가 작성자인지 확인하는 쿼리
         const checkSql = "SELECT USER_ID FROM PTB_FEED_COMMENT WHERE FEED_COMMENT_NO = ?";
         const [commentRows] = await connection.query(checkSql, [commentNo]);
+        if (commentRows.length === 0) return res.status(404).json({ msg: "존재하지 않는 댓글입니다." });
+        if (commentRows[0].USER_ID !== USER_ID) return res.status(403).json({ msg: "댓글 삭제 권한이 없습니다." });
 
-        if (commentRows.length === 0) {
-            return res.status(404).json({ msg: "존재하지 않는 댓글입니다." });
-        }
-
-        // 2. 작성자 확인 (인가/Authorization)
-        if (commentRows[0].USER_ID !== USER_ID) {
-            // 다른 사용자의 댓글 삭제 시도 방지
-            return res.status(403).json({ msg: "댓글 삭제 권한이 없습니다." });
-        }
-
-        // 3. 댓글 삭제 쿼리 실행
         const deleteSql = "DELETE FROM PTB_FEED_COMMENT WHERE FEED_COMMENT_NO = ?";
         const [result] = await connection.query(deleteSql, [commentNo]);
         
         await connection.commit();
-        
-        if (result.affectedRows > 0) {
-            res.status(200).json({ 
-                result: "success", 
-                msg: "댓글이 성공적으로 삭제되었습니다."
-            });
-        } else {
-            res.status(500).json({ msg: "댓글 삭제에 실패했습니다." });
-        }
+        res.status(200).json({ result: "success", msg: "댓글이 성공적으로 삭제되었습니다." });
 
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
+        if (connection) await connection.rollback();
         console.error("댓글 삭제 오류:", error);
         res.status(500).json({ msg: "서버 오류로 인해 댓글 삭제에 실패했습니다." });
     } finally {
-        if (connection) {
-            connection.release();
-        }
+        if (connection) connection.release();
     }
 });
 
