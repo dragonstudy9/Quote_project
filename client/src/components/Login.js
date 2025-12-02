@@ -63,7 +63,7 @@ function Login() {
     <Box 
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #6a82fb 0%, #fc5c7d 100%)",
+        background: "linear-gradient(90deg, #000000ff 0%, #f8f8f8ff 100%)",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
