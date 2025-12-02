@@ -156,10 +156,10 @@ const handleLike = async (feedNo) => {
     else { alert(result.msg); }
   };
 
-  const handleDeleteTag = async (feedId, tag) => {
+  const handleDeleteTag = async ( feedNo, tag) => {
     if (!window.confirm(`정말로 태그 "${tag}"를 삭제하시겠습니까?`)) return;
     try {
-      const response = await fetch(`http://localhost:3010/feed/tag/${feedId}/${encodeURIComponent(tag)}`, {
+      const response = await fetch(`http://localhost:3010/feed/tag/${ feedNo}/${encodeURIComponent(tag)}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
       });
@@ -168,10 +168,10 @@ const handleLike = async (feedNo) => {
         alert(data.msg);
         setFeeds(prevFeeds =>
           prevFeeds.map(feed =>
-            feed.id === feedId ? { ...feed, tags: feed.tags.filter(t => t !== tag) } : feed
+            feed.id ===  feedNo ? { ...feed, tags: feed.tags.filter(t => t !== tag) } : feed
           )
         );
-        if (selectedFeed && selectedFeed.id === feedId) {
+        if (selectedFeed && selectedFeed.id ===  feedNo) {
           setSelectedFeed(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
         }
       } else {
@@ -190,7 +190,7 @@ const handleLike = async (feedNo) => {
       const response = await fetch("http://localhost:3010/feed/tag", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ feedId: selectedFeed.id, tagName: newTag.trim() }),
+        body: JSON.stringify({  feedNo: selectedFeed.id, tagName: newTag.trim() }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -258,16 +258,7 @@ const handleLike = async (feedNo) => {
                   ))}
                 </Box>
 
-                {/* 좋아요 버튼: 누른 기록이 있으면 안 보이도록 */}
-                {!likedFeeds.includes(feed.id) && (
-                  <Button size="small"
-                    color="primary"
-                    variant="outlined"
-                    sx={{ mt: 1 }}
-                    onClick={(e) => { e.stopPropagation(); handleLike(feed.id); }}>
-                    ♡ 좋아요
-                  </Button>
-                )}
+                
               </CardContent>
             </Card>
           </Grid>
@@ -308,16 +299,7 @@ const handleLike = async (feedNo) => {
             ))}
           </Box>
 
-          {/* 상세 모달 좋아요 버튼: 누른 기록이 있으면 안 보이도록 */}
-          {selectedFeed && !likedFeeds.includes(selectedFeed.id) && (
-            <Button size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ mt: 2 }}
-              onClick={() => handleLike(selectedFeed.id)}>
-              ♡ 좋아요
-            </Button>
-          )}
+          
 
           {/* 댓글 */}
           <Divider sx={{ my: 2 }} />
