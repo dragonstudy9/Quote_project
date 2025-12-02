@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'zB7fE9X1yR4vT0qH3mC8wL5sJ2dK6pUaGbNcZdEfHgIjKlMnOpQrStUvWxY'; // .env 없이 하드코딩
+require("dotenv").config();
 
 module.exports = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_KEY);
         req.user = decoded; // 이후 라우터에서 req.user로 사용자 정보 사용 가능
         next(); // 다음 함수 실행
     } catch (err) {

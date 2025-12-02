@@ -86,7 +86,7 @@ function Register() {
   return (
     <Container maxWidth="sm">
       <Box display="flex" flexDirection="column" alignItems="center" padding={3}>
-        <Typography variant="h4" gutterBottom>피드 등록</Typography>
+        <Typography variant="h4" gutterBottom>명언 등록</Typography>
 
         <TextField inputRef={titleRef} label="제목" fullWidth margin="normal" />
 

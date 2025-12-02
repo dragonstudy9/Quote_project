@@ -150,7 +150,7 @@ function Menu() {
             }}
           >
             <ListItemIcon><AppsIcon sx={{ color: "#fff" }} /></ListItemIcon>
-            <ListItemText primary="전체 피드" />
+            <ListItemText primary="전체 명언" />
           </ListItem>
         )}
 
@@ -162,7 +162,7 @@ function Menu() {
           sx={{ color: "#eee", '&:hover': { background: "rgba(255,255,255,0.1)" } }}
         >
           <ListItemIcon><Home sx={{ color: "#fff" }} /></ListItemIcon>
-          <ListItemText primary="나의 피드" />
+          <ListItemText primary="나의 명언" />
         </ListItem>
 
         {/* 등록 */}
