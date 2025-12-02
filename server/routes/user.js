@@ -79,6 +79,58 @@ router.put('/intro', authMiddleware, async (req, res) => {
 });
 
 
+// 🚀 추가: 회원 탈퇴 API (DELETE /user/withdrawal)
+router.delete('/withdrawal', authMiddleware, async (req, res) => {
+    // authMiddleware를 통해 추출된 사용자 ID
+    const USER_ID = req.user.userId;
+
+    let connection;
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction(); // 트랜잭션 시작
+
+        // 1. 해당 사용자의 피드 번호 목록 조회 (관련 데이터를 삭제하기 위함)
+        const [feedRows] = await connection.query("SELECT FEED_NO FROM PTB_FEED WHERE USER_ID = ?", [USER_ID]);
+        const feedNos = feedRows.map(row => row.FEED_NO);
+        
+        // 2. 피드 관련 데이터 삭제 (CASCADE 설정이 없다면 수동으로 삭제)
+        if (feedNos.length > 0) {
+            const placeholders = feedNos.map(() => '?').join(',');
+            
+            // 2-1. 해당 피드의 이미지, 태그, 좋아요, 댓글 삭제
+            await connection.query(`DELETE FROM PTB_FEED_IMG WHERE FEED_NO IN (${placeholders})`, feedNos);
+            await connection.query(`DELETE FROM PTB_FEED_TAG WHERE FEED_NO IN (${placeholders})`, feedNos);
+            await connection.query(`DELETE FROM PTB_FEED_LIKE WHERE FEED_NO IN (${placeholders})`, feedNos);
+            await connection.query(`DELETE FROM PTB_FEED_COMMENT WHERE FEED_NO IN (${placeholders})`, feedNos);
+            
+            // 2-2. 해당 피드 자체 삭제
+            await connection.query(`DELETE FROM PTB_FEED WHERE FEED_NO IN (${placeholders})`, feedNos);
+        }
+
+        // 3. 사용자가 작성한 댓글 및 좋아요 삭제 (사용자가 작성한 피드가 아닌 다른 사람의 피드에 남긴 것)
+        await connection.query("DELETE FROM PTB_FEED_COMMENT WHERE USER_ID = ?", [USER_ID]);
+        await connection.query("DELETE FROM PTB_FEED_LIKE WHERE USER_ID = ?", [USER_ID]);
+
+        // 4. 최종적으로 사용자 계정 삭제
+        const [result] = await connection.query("DELETE FROM PTB_USER WHERE USER_ID = ?", [USER_ID]);
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return res.status(404).json({ msg: "삭제할 사용자를 찾을 수 없습니다." });
+        }
+
+        await connection.commit(); // 모든 작업 성공 시 커밋
+        res.json({ result: "success", msg: "회원 탈퇴가 성공적으로 처리되었습니다." });
+
+    } catch (error) {
+        if (connection) await connection.rollback(); // 오류 발생 시 롤백
+        console.error("회원 탈퇴 중 오류:", error);
+        res.status(500).json({ msg: "서버 오류로 인해 회원 탈퇴에 실패했습니다." });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
 // 📝 회원가입 API (POST /user/join)
 router.post('/join', async (req, res) => {
     let {userId, pwd, userName, userEmail, userPhoneNumber, userAddr} = req.body

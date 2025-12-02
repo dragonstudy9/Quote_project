@@ -177,7 +177,7 @@ function Join() {
             회원가입
         </Button>
         <Typography variant="body2" style={{ marginTop: '10px' }}>
-          이미 회원이라면? <Link to="/login">로그인</Link>
+          이미 회원이라면? <Link to="/">로그인</Link>
         </Typography>
       </Box>
     </Container>

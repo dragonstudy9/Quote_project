@@ -10,33 +10,37 @@ function Menu() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const [userStatus, setUserStatus] = useState(null); 
+  // 🚀 추가: 사용자 아이디 상태
+  const [userId, setUserId] = useState(null); 
   const [quote, setQuote] = useState({ text: '', author: '' }); // 🔥 랜덤 명언 상태
 
   // ⭐️ 명언 최대 길이 정의 (FeedList.js와 동일하게 50자) ⭐️
   const MAX_LENGTH = 100; 
 
   // 현재 로그인한 사용자 상태 가져오기
+  // 🚀 함수 수정: userId를 포함하여 반환하도록 변경
   const getCurrentUserStatus = () => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const decoded = jwtDecode(token);
         setIsLoggedIn(true);
-        return decoded.status;
+        return { status: decoded.status, userId: decoded.userId }; // status와 userId를 객체로 반환
       } catch (e) {
         console.error("토큰 디코딩 실패:", e);
         setIsLoggedIn(false);
-        return null;
+        return { status: null, userId: null };
       }
     }
     setIsLoggedIn(false);
-    return null;
+    return { status: null, userId: null };
   };
 
   const fnLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
     setUserStatus(null);
+    setUserId(null); // 🚀 로그아웃 시 userId 초기화
 
     alert("로그아웃 되었습니다.");
     navigate("/"); 
@@ -63,7 +67,9 @@ function Menu() {
   };
 
   useEffect(() => {
-    setUserStatus(getCurrentUserStatus());
+    const { status, userId } = getCurrentUserStatus(); // 🚀 status와 userId를 모두 받아옴
+    setUserStatus(status);
+    setUserId(userId); // 🚀 userId 상태 설정
     fetchRandomQuote(); // 컴포넌트 마운트 시 랜덤 명언 가져오기
   }, []);
 
@@ -89,6 +95,18 @@ function Menu() {
       }}
     >
       <Toolbar />
+
+      {/* 🚀 사용자 아이디 표시 영역 (메뉴 맨 위) */}
+      {isLoggedIn && userId && (
+          <Box sx={{ p: 2, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#66bb6a" }}>
+                  환영합니다!
+              </Typography>
+              <Typography variant="h6" sx={{ color: "#fff" }}>
+                  {userId}
+              </Typography>
+          </Box>
+      )}
 
       {/* 🔥 랜덤 명언 영역 */}
       <Box sx={{ p: 6, textAlign: "center", color: "#e0e0e0" }}>
