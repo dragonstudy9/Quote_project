@@ -73,6 +73,8 @@ router.post('/', authMiddleware, upload.array('files', 5), async (req, res) => {
 });
 
 
+// feed.js
+
 // ----------------------
 // 피드 목록 조회 
 // ----------------------
@@ -89,18 +91,22 @@ router.get("/list", async (req, res) => {
         F.QUOTE_BACKGROUND,   
         F.CREATE_FEED_DATE AS CREATE_DATE, 
         GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
-        GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
+        GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags,
+        COUNT(DISTINCT L.FEED_LIKE_NO) AS TOTAL_LIKES 
       FROM PTB_FEED F
       JOIN PTB_USER U ON F.USER_ID = U.USER_ID
       LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
       LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
       LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
+      LEFT JOIN PTB_FEED_LIKE L ON F.FEED_NO = L.FEED_NO 
       WHERE (F.FEED_TITLE LIKE ? OR F.FEED_CONTENTS LIKE ? OR T.TAG_NAME LIKE ? OR F.QUOTE_BACKGROUND LIKE ?)
       GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.QUOTE_BACKGROUND, F.CREATE_FEED_DATE
       ORDER BY F.CREATE_FEED_DATE DESC
     `;
 
     let [list] = await db.query(sql, [q, q, q, q]);
+
+// ... (이후 코드는 동일)
 
     const formattedList = list.map(feed => ({
       ...feed,
@@ -135,11 +141,13 @@ router.get("/:userId", async (req, res) => {
         F.QUOTE_BACKGROUND,    
         F.CREATE_FEED_DATE AS CREATE_DATE, 
         GROUP_CONCAT(DISTINCT I.IMG_PATH) AS imgPaths,
-        GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags
+        GROUP_CONCAT(DISTINCT T.TAG_NAME) AS tags,
+        COUNT(DISTINCT L.FEED_LIKE_NO) AS TOTAL_LIKES
       FROM PTB_FEED F 
       LEFT JOIN PTB_FEED_IMG I ON F.FEED_NO = I.FEED_NO
       LEFT JOIN PTB_FEED_TAG FT ON F.FEED_NO = FT.FEED_NO
       LEFT JOIN PTB_TAG_LIST T ON FT.TAG_NO = T.TAG_NO
+      LEFT JOIN PTB_FEED_LIKE L ON F.FEED_NO = L.FEED_NO
       WHERE F.USER_ID = ? 
       GROUP BY F.FEED_NO, F.USER_ID, F.FEED_TITLE, F.FEED_CONTENTS, F.QUOTE_BACKGROUND, F.CREATE_FEED_DATE
       ORDER BY F.CREATE_FEED_DATE DESC

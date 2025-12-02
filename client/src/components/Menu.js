@@ -10,8 +10,10 @@ function Menu() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const [userStatus, setUserStatus] = useState(null); 
-
   const [quote, setQuote] = useState({ text: '', author: '' }); // 🔥 랜덤 명언 상태
+
+  // ⭐️ 명언 최대 길이 정의 (FeedList.js와 동일하게 50자) ⭐️
+  const MAX_LENGTH = 100; 
 
   // 현재 로그인한 사용자 상태 가져오기
   const getCurrentUserStatus = () => {
@@ -65,6 +67,12 @@ function Menu() {
     fetchRandomQuote(); // 컴포넌트 마운트 시 랜덤 명언 가져오기
   }, []);
 
+  // ⭐️ 추가된 로직: 명언 내용 길이 제한 ⭐️
+  const truncatedQuoteText = quote.text.length > MAX_LENGTH
+      ? quote.text.substring(0, MAX_LENGTH) + '...'
+      : quote.text;
+  // ---------------------------------------
+
   return (
     <Drawer
       variant="permanent"
@@ -88,7 +96,8 @@ function Menu() {
           오늘의 명언
         </Typography>
         <Typography variant="body2" sx={{ fontStyle: "italic", opacity: 0.9 }}>
-          {quote.text ? `“${quote.text}”` : "명언을 불러오는 중..."}
+          {/* ⭐️ quote.text 대신 truncatedQuoteText 사용 ⭐️ */}
+          {quote.text ? `“${truncatedQuoteText}”` : "명언을 불러오는 중..."}
         </Typography>
         {quote.text && (
           <Typography variant="caption" sx={{ display: "block", mt: 1, opacity: 0.7 }}>

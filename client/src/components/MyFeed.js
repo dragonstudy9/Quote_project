@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import FavoriteIcon from '@mui/icons-material/Favorite'; // 좋아요 아이콘 추가
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 
@@ -18,7 +19,7 @@ function MyFeed() {
  const [newTag, setNewTag] = useState('');
  const [feeds, setFeeds] = useState([]);
  const [searchText, setSearchText] = useState("");
- const [likedFeeds, setLikedFeeds] = useState([]); // 좋아요 상태
+ const [likedFeeds, setLikedFeeds] = useState([]); 
  const navigate = useNavigate();
 
  const getCurrentUserId = () => {
@@ -28,7 +29,7 @@ function MyFeed() {
   catch { return null; }
  };
 
- // 내 피드 목록 불러오기
+ // 내 피드 목록 불러오기 (좋아요 수 포함)
  const fnFeeds = () => {
   const token = localStorage.getItem("token");
   if (!token) { alert("로그인 후 이용해 주세요!"); navigate("/"); return; }
@@ -40,9 +41,20 @@ function MyFeed() {
     const formattedFeeds = (data?.list || []).map(feed => ({
      ...feed,
      imgPath: feed.imgPaths?.[0] || null,
-     tags: feed.tags || []
+     tags: feed.tags || [],
+     // 서버에서 가져온 TOTAL_LIKES를 반영
+     TOTAL_LIKES: feed.TOTAL_LIKES || 0
     }));
     setFeeds(formattedFeeds);
+
+    // 모달이 열려있는 경우, 업데이트된 피드 정보로 selectedFeed를 갱신
+    if (selectedFeed) {
+      const updatedSelectedFeed = formattedFeeds.find(f => f.id === selectedFeed.id);
+      if (updatedSelectedFeed) {
+        setSelectedFeed(updatedSelectedFeed);
+      }
+    }
+
    })
    .catch(error => console.error("내 피드 조회 실패:", error));
  };
@@ -73,7 +85,7 @@ function MyFeed() {
   }
  };
 
- // 좋아요 클릭
+// 좋아요 클릭 (좋아요 수 서버에서 재로딩)
 const handleLike = async (feedNo) => {
  const token = localStorage.getItem("token");
  if (!token) { 
@@ -91,9 +103,11 @@ const handleLike = async (feedNo) => {
    body: JSON.stringify({ feedNo, userId })
   });
   const data = await res.json();
-  if (res.ok) {
+  if (res.ok && data.result === "success") {
    setLikedFeeds(prev => [...prev, feedNo]);
-   alert("좋아요가 반영됐습니다."); // 성공 시 알림 추가
+    // 좋아요 수를 서버에서 다시 가져옵니다.
+    fnFeeds(); 
+   alert("좋아요가 반영됐습니다."); 
   } else {
    alert(data.msg || "이미 좋아요를 누르셨습니다.");
   }
@@ -175,10 +189,10 @@ const handleLike = async (feedNo) => {
     alert(data.msg);
     setFeeds(prevFeeds =>
      prevFeeds.map(feed =>
-      feed.id ===  feedNo ? { ...feed, tags: feed.tags.filter(t => t !== tag) } : feed
+      feed.id ===  feedNo ? { ...feed, tags: feed.tags.filter(t => t !== tag) } : feed
      )
     );
-    if (selectedFeed && selectedFeed.id ===  feedNo) {
+    if (selectedFeed && selectedFeed.id ===  feedNo) {
      setSelectedFeed(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
     }
    } else {
@@ -197,7 +211,7 @@ const handleLike = async (feedNo) => {
    const response = await fetch("http://localhost:3010/feed/tag", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-    body: JSON.stringify({  feedNo: selectedFeed.id, tagName: newTag.trim() }),
+    body: JSON.stringify({  feedNo: selectedFeed.id, tagName: newTag.trim() }),
    });
    const data = await response.json();
    if (response.ok) {
@@ -245,7 +259,7 @@ const handleLike = async (feedNo) => {
 
    <Grid container spacing={4}>
     {filteredFeeds.map(feed => {
-            // ⭐️ 내용 길이 제한 로직: 50자로 제한
+            // 내용 길이 제한 로직: 50자로 제한
             const truncatedContent = feed.FEED_CONTENTS.length > 50 
                 ? feed.FEED_CONTENTS.substring(0, 50) + '...' 
                 : feed.FEED_CONTENTS;
@@ -259,7 +273,6 @@ const handleLike = async (feedNo) => {
        <CardContent>
         <FormatQuoteIcon sx={{ fontSize: 36, color: "#555" }} />
         <Typography variant="h6" fontWeight={600}>{feed.FEED_TITLE}</Typography>
-        {/* ⭐️ 수정된 부분: 잘린 내용을 표시합니다. ⭐️ */}
         <Typography variant="body2" color="text.secondary" sx={{ minHeight: 40 }}>“{truncatedContent}”</Typography>
         <Typography variant="caption" display="block" color="text.disabled" sx={{ mt: 1 }}>{feed.QUOTE_BACKGROUND} · {new Date(feed.CREATE_DATE).toLocaleDateString()}</Typography>
 
@@ -272,7 +285,15 @@ const handleLike = async (feedNo) => {
          ))}
         </Box>
 
-        
+        {/* ⭐️ 추가: 좋아요 총 개수 표시 ⭐️ */}
+        <Box display="flex" alignItems="center" mt={1}>
+          <FavoriteIcon fontSize="small" color="error" sx={{ mr: 0.5 }} />
+          <Typography variant="body2" fontWeight={600} color="text.primary">
+            좋아요: {feed.TOTAL_LIKES} 개
+          </Typography>
+        </Box>
+        {/* ------------------------------- */}
+
        </CardContent>
       </Card>
      </Grid>
@@ -292,6 +313,15 @@ const handleLike = async (feedNo) => {
      <Typography variant="caption" color="text.secondary">
       출처: {selectedFeed?.QUOTE_BACKGROUND} · 피드 작성자: {selectedFeed?.USER_ID} · {new Date(selectedFeed?.CREATE_DATE).toLocaleDateString()}
      </Typography>
+
+      {/* ⭐️ 추가: 상세 모달 좋아요 총 개수 표시 ⭐️ */}
+      <Box display="flex" alignItems="center" mt={2} mb={1} color="error.main">
+        <FavoriteIcon sx={{ mr: 1 }} />
+        <Typography variant="subtitle1" fontWeight={700}>
+          총 좋아요 수: {selectedFeed?.TOTAL_LIKES} 개
+        </Typography>
+      </Box>
+      {/* ------------------------------------------- */}
 
      <Box mt={3} mb={2}>
       {selectedFeed?.USER_ID === getCurrentUserId() && (
