@@ -49,7 +49,63 @@ react를 활용한 SNS 사이트 만들기
 
 ## 7. 📑 페이지별 주요 기능 
 
+### 1. 로그인
 
+- 
+
+<p align="center">
+  <img src="./readme_img/로그인.png" alt="로그인" width="700"/>
+</p>
+
+### 2. 회원가입
+
+- 
+
+<p align="center">
+  <img src="./readme_img/회원가입.png" alt="회원가입" width="700"/>
+</p>
+
+### 3. 전체 명언
+
+- 
+
+<p align="center">
+  <img src="./readme_img/전체명언.png" alt="전체명언" width="700"/>
+</p>
+
+### 4. 나의 명언
+
+- 
+
+<p align="center">
+  <img src="./readme_img/나의명언.png" alt="나의명언" width="700"/>
+</p>
+
+### 5. 상세보기(피드를 눌렀을 때 뜨는 모달 창)
+
+-
+
+<p align="center">
+  <img src="./readme_img/피드 상세보기.png" alt="피드 상세보기" width="700"/>
+</p>
+
+### 6. 등록
+
+- 
+
+<p align="center">
+  <img src="./readme_img/등록.png" alt="등록" width="700"/>
+</p>
+
+### 7. 마이페이지
+
+-
+
+<p align="center">
+  <img src="./readme_img/마이페이지.png" alt="마이페이지" width="700"/>
+</p>
 
 ## 8. 🎇 프로젝트 후기
 
+
+### 아쉬웠던 점
