@@ -167,7 +167,7 @@ function MyPage() {
         </Box>
 
         {/* 회원 탈퇴 */}
-        <Box sx={{ marginTop: 50, width: '100%', textAlign: 'center' }}>
+        <Box sx={{ marginTop: 25, width: '100%', textAlign: 'center' }}>
           <Typography variant="body1" color="error" sx={{ mb:1, fontSize:'1.1rem' }}>
             계정을 영구적으로 삭제하려면 아래 버튼을 클릭하세요.
           </Typography>
