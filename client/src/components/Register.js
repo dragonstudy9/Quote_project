@@ -99,10 +99,10 @@ function Register() {
           rows={4}
         />
 
-        {/* 🔥 명언 작성자 */}
+        {/* 🔥 명언 출처 */}
         <TextField
           inputRef={quoteBackgroundRef}
-          label="명언 작성자"
+          label="명언 출처"
           fullWidth
           margin="normal"
         />
