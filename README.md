@@ -31,8 +31,24 @@ react를 활용한 SNS 사이트 만들기
 
 ## 6. 기획 및 설계
 
+![alt text](./readme_img/개요.png)
+
+![alt text](./readme_img/PTB_USER.png)
+
+![alt text](./readme_img/PTB_FEED.png)
+
+![alt text](./readme_img/PTB_FEED_COMMENT.png)
+
+![alt text](./readme_img/PTB_FEED_IMG.png)
+
+![alt text](./readme_img/PTB_FEED_LIKE.png)
+
+![alt text](./readme_img/PTB_FEED_TAG.png)
+
+![alt text](./readme_img/PTB_TAG_LIST.png)
 
 ## 7. 📑 페이지별 주요 기능 
+
 
 
 ## 8. 🎇 프로젝트 후기
