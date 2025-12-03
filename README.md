@@ -29,7 +29,7 @@ react를 활용한 SNS 사이트 만들기
 | Database | ![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white) |
 | AI | ![ChatGPT](https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white) ![Google Gemini](https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)
 
-## 6. 기획 및 설계
+## 6. 🖼️ 기획 및 설계
 
 ![alt text](./readme_img/개요.png)
 
