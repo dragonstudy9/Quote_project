@@ -100,7 +100,7 @@ react를 활용한 SNS 사이트 만들기
 - 자신이 작성한 댓글은 삭제할 수 있음
 
 <p align="center">
-  <img src="./readme_img/피드 상세보기.png" alt="피드 상세보기" width="700" height="300"/>
+  <img src="./readme_img/피드 상세보기.png" alt="피드 상세보기" width="500" height="300"/>
 </p>
 
 ### 5. 등록
@@ -108,7 +108,7 @@ react를 활용한 SNS 사이트 만들기
 - 제목, 내용, 명언 출처, 태그를 입력있으면 피드에서 보여지는 이미지로 사용된다. 
 
 <p align="center">
-  <img src="./readme_img/등록.png" alt="등록" width="700" height="300"/>
+  <img src="./readme_img/등록.png" alt="등록" width="500" height="300"/>
 </p>
 
 ### 6. 마이페이지
@@ -116,7 +116,7 @@ react를 활용한 SNS 사이트 만들기
 - 로그인한 사용자 아이디와 이름, 작성한 게시글 총 수, 자기소개, 이메일, 전화번호, 주소를 확인하거나 수정할 수 있음
 - 회원 탈퇴 버튼을 통해 회원탈퇴도 가능
 <p align="center">
-  <img src="./readme_img/마이페이지.png" alt="마이페이지" width="700" height="300"/>
+  <img src="./readme_img/마이페이지.png" alt="마이페이지" width="500" height="300"/>
 </p>
 
 ## 6. 🎇 프로젝트 후기
