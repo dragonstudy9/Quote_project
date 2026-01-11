@@ -3,28 +3,13 @@
 ## 1. 📌 프로젝트 주제
 react를 활용한 SNS 사이트 만들기
 
-## 2. 💡 프로젝트 소개
+## 2. 💡 프로젝트 소개 (개발 기간 : 2025.11.25 ~ 2025.12.2 (1주간))
 명언집 SNS는 여러분이 소중하게 생각하는 명언을 SNS 상에 올려서 다른 분들과 공유할 수 있는 사이트입니다.
 
 각자가 소중하게 생각하는 명언을 공유하며  
 위로와 영감을 주고받는 서비스를 목표로 제작했습니다.
 
-## 3. 👨‍👩‍👦‍👦 팀원 구성
- <table>
-    <tr>
-        <th>이름</th>                    
-        <th>GitHub 프로필</th>
-    </tr>
-    <tr>
-        <td>조원정</td>
-        <td>https://github.com/dragonstudy9</td>
-    </tr>
-</table>
-
-## 4. ⏱️ 개발 기간  
-**2025.11.25 ~ 2025.12.2 (1주간)**
-
-## 5. 🛠 사용 기술
+## 3. 🛠 사용 기술
 | 분류 | 기술 |
 |------|------|
 | Frontend | ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) |
@@ -32,7 +17,7 @@ react를 활용한 SNS 사이트 만들기
 | Database | ![MySQL](https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white) |
 | AI | ![ChatGPT](https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white) ![Google Gemini](https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)
 
-## 6. 🖼️ 기획 및 설계
+## 4. 🖼️ 기획 및 설계
 
 ### 기획
 
@@ -70,7 +55,7 @@ react를 활용한 SNS 사이트 만들기
   <img src="./readme_img/PTB_TAG_LIST.png" width="900"/>
 </p>
 
-## 7. 📑 페이지별 주요 기능 
+## 5. 📑 페이지별 주요 기능 
 
 ### 1. 로그인
 
@@ -134,6 +119,6 @@ react를 활용한 SNS 사이트 만들기
   <img src="./readme_img/마이페이지.png" alt="마이페이지" width="700" height="300"/>
 </p>
 
-## 8. 🎇 프로젝트 후기
+## 6. 🎇 프로젝트 후기
 
  명언집 SNS 프로젝트를 진행하며 React를 활용해 컴포넌트 단위로 UI를 설계하는 방식에 익숙해졌습니다. Express 기반 REST API를 직접 설계하면서 프론트엔드와 백엔드 간 데이터 흐름을 전반적으로 이해하게 되었습니다. 로그인, 게시글, 댓글, 좋아요 기능을 구현하는 과정에서 CRUD 전반을 직접 경험하며 실무에 가까운 개발 과정을 체득했습니다. 이 경험을 통해 단순히 기능이 동작하는 것보다 사용자 흐름을 고려한 설계가 더욱 중요하다는 점을 깨달았습니다. 또한 유지보수와 확장이 가능한 구조를 설계하는 것이 실제 서비스 관점에서 핵심이라는 점을 인식하게 되었습니다.
