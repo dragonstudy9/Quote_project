@@ -99,7 +99,7 @@ react를 활용한 SNS 사이트 만들기
 - 자신이 작성한 댓글은 삭제할 수 있음
 
 <p align="center">
-  <img src="./readme_img/피드 상세보기.png" alt="피드 상세보기" width="300" height="300"/>
+  <img src="./readme_img/피드 상세보기.png" alt="피드 상세보기" width="200" height="300"/>
 </p>
 
 ### 5. 등록
