@@ -20,39 +20,23 @@ react를 활용한 SNS 사이트 만들기
 
 ### 기획
 
-<p align="center">
-  <img src="./readme_img/개요.png" alt="서비스 개요" width="900"/>
-</p>
+[개요.png](https://drive.google.com/file/d/1ysPn6_VqGh8Mr-qAK2t7_wXem_hTg4-F/view?usp=sharing)
 
 ### DB설계
 
-<p align="center">
-  <img src="./readme_img/PTB_USER.png" width="900"/>
-</p>
+[PTB_USER.png](https://drive.google.com/file/d/1t4ZMQmJfKT2gOQBclBBpHIxq03ExnAdq/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_FEED.png" width="900"/>
-</p>
+[PTB_FEED.png](https://drive.google.com/file/d/1vFxz8OLjlf3XONrtaNvOAJY612_wpFpE/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_FEED_COMMENT.png" width="900"/>
-</p>
+[PTB_FEED_COMMENT.png](https://drive.google.com/file/d/1HCLci8NlvyXt1JJz_NWcPG5ILNFO5P1C/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_FEED_IMG.png" width="900"/>
-</p>
+[PTB_FEED_IMG.png](https://drive.google.com/file/d/1wprGV5PNYWk4iJ6EZUIxUuSKdXViqO1o/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_FEED_LIKE.png" width="900"/>
-</p>
+[PTB_FEED_LIKE.png](https://drive.google.com/file/d/1A8OBMgq74AXiJG0lNydqJz0qWbpqM3PX/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_FEED_TAG.png" width="900"/>
-</p>
+[PTB_FEED_TAG.png](https://drive.google.com/file/d/1JjmrQMx5392r_6fWtEnomwAumAcbuwKw/view?usp=sharing)
 
-<p align="center">
-  <img src="./readme_img/PTB_TAG_LIST.png" width="900"/>
-</p>
+[PTB_TAG_LIST.png](https://drive.google.com/file/d/1TiItn7vONvynWtIbrsCHDLyoNRk8lWIe/view?usp=sharing)
 
 ## 5. 📑 페이지별 주요 기능 
 
